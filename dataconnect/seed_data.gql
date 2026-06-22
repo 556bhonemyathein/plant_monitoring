@@ -1,0 +1,39 @@
+mutation CreateSeedData @transaction {
+  user_insertMany(data: [
+    {
+      id: "550e8400-e29b-41d4-a716-446655440000",
+      email: "alice@example.com",
+      displayName: "Alice"
+    },
+    {
+      id: "550e8400-e29b-41d4-a716-446655440001",
+      email: "bob@example.com",
+      displayName: "Bob"
+    }
+  ])
+  room_insertMany(data: [
+    {
+      id: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+      name: "Living Room",
+      user: { id: "550e8400-e29b-41d4-a716-446655440000" }
+    }
+  ])
+  plantSpecies_insertMany(data: [
+    {
+      id: "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+      commonName: "Snake Plant",
+      scientificName: "Dracaena trifasciata",
+      lightRequirement: "Low to bright indirect",
+      waterFrequencyRange: "Every 2-8 weeks"
+    }
+  ])
+  plant_insertMany(data: [
+    {
+      id: "c76f6a73-90d2-432d-95cf-90f670f5e711",
+      nickname: "Slithy",
+      species: { id: "f47ac10b-58cc-4372-a567-0e02b2c3d479" },
+      user: { id: "550e8400-e29b-41d4-a716-446655440000" },
+      room: { id: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11" }
+    }
+  ])
+}

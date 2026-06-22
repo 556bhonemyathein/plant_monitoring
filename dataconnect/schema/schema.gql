@@ -1,0 +1,39 @@
+type User @table {
+  email: String!
+  displayName: String!
+  preferredMeasurementSystem: String
+}
+
+type Room @table {
+  name: String!
+  temperatureSensorID: String
+  lightLevel: String
+  user: User!
+}
+
+type PlantSpecies @table {
+  commonName: String!
+  scientificName: String!
+  lightRequirement: String!
+  waterFrequencyRange: String!
+  toxicityToPets: Boolean
+  growthRate: String
+}
+
+type Plant @table {
+  nickname: String!
+  species: PlantSpecies!
+  acquisitionDate: Date
+  photoUrl: String
+  wateringIntervalDays: Int
+  user: User!
+  room: Room!
+}
+
+type CareLog @table {
+  actionType: String!
+  timestamp: Timestamp!
+  notes: String
+  photoUrl: String
+  plant: Plant!
+}

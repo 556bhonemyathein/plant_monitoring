@@ -1,0 +1,29 @@
+mutation CreatePlant($nickname: String!, $speciesId: UUID!, $roomId: UUID!) @auth(level: USER) {
+  plant_insert(data: {
+    nickname: $nickname,
+    speciesId: $speciesId,
+    roomId: $roomId,
+    userId_expr: "auth.uid"
+  })
+}
+
+query GetMyPlants @auth(level: USER) {
+  plants(where: { userId: { eq_expr: "auth.uid" } }) {
+    id
+    nickname
+    species {
+      commonName
+    }
+    room {
+      name
+    }
+  }
+}
+
+mutation UpdatePlantNickname($id: UUID!, $nickname: String!) @auth(level: USER) {
+  plant_update(id: $id, data: { nickname: $nickname })
+}
+
+mutation DeletePlant($id: UUID!) @auth(level: USER) {
+  plant_delete(id: $id)
+}
