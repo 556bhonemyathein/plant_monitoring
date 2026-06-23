@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1034661701520",
+    "project_id": "plant-monitoring-30ac8",
+    "storage_bucket": "plant-monitoring-30ac8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1034661701520:android:dde5de1a1fa6d4888ff515",
+        "android_client_info": {
+          "package_name": "com.example.plant_monitoring"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCVQiraeugD81Z0Za1kabeXP0Jqu5gQmps"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
