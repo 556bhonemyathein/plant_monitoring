@@ -3,14 +3,14 @@ import 'package:flutter_mjpeg/flutter_mjpeg.dart'; // ကင်မရာ stream 
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-class PlantDashboard extends StatefulWidget {
-  const PlantDashboard({super.key});
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
 
   @override
-  State<PlantDashboard> createState() => _PlantDashboardState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _PlantDashboardState extends State<PlantDashboard> {
+class _HomeScreenState extends State<HomeScreen> {
   // ကိန်းဂဏန်းများ သိမ်းဆည်းရန် Variable များ
   double temp = 0.0;
   double humid = 0.0;
@@ -42,18 +42,15 @@ class _PlantDashboardState extends State<PlantDashboard> {
           // --- ဉာဏ်စမ်း Logic များ (၁ လအတွင်း ပြီးမည့်ဗားရှင်း) ---
           if (soilMoisture == 1) {
             healthStatus = "မြေဆီလွှာ ခြောက်သွေ့နေသည်";
-            advice =
-                "လိုအပ်ချက်: အပင်ကို အမြန်ဆုံး ရေလောင်းပေးရန် လိုအပ်ပါသည်။";
+            advice = "လိုအပ်ချက်: အပင်ကို အမြန်ဆုံး ရေလောင်းပေးရန် လိုအပ်ပါသည်။";
             statusColor = Colors.orange;
           } else if (humid > 80.0 && temp > 28.0) {
             healthStatus = "ပိုးမွှား/မှိုကျရောက်နိုင်ခြေ မြင့်မားနေသည်";
-            advice =
-                "လိုအပ်ချက်: လေဝင်လေထွက်ကောင်းအောင်လုပ်ပြီး ပိုးသတ်ဆေး ကြိုတင်ဖျန်းပါ။";
+            advice = "လိုအပ်ချက်: လေဝင်လေထွက်ကောင်းအောင်လုပ်ပြီး ပိုးသတ်ဆေး ကြိုတင်ဖျန်းပါ။";
             statusColor = Colors.red;
           } else if (temp > 35.0) {
             healthStatus = "အပူချိန် အရမ်းပြင်းထန်နေသည်";
-            advice =
-                "လိုအပ်ချက်: အပင်ကို နေရောင်တိုက်ရိုက်မကျသော အရိပ်အောက် ရွှေ့ပေးပါ။";
+            advice = "လိုအပ်ချက်: အပင်ကို နေရောင်တိုက်ရိုက်မကျသော အရိပ်အောက် ရွှေ့ပေးပါ။";
             statusColor = Colors.amber;
           } else {
             healthStatus = "အပင်ကျန်းမာရေး ကောင်းမွန်ပါသည်";
@@ -63,11 +60,7 @@ class _PlantDashboardState extends State<PlantDashboard> {
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("ESP32 နဲ့ ချိတ်ဆက်၍မရပါ။ Wi-Fi ကို ပြန်စစ်ပါတ။"),
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("ESP32 နဲ့ ချိတ်ဆက်၍မရပါ။ Wi-Fi ကို ပြန်စစ်ပါတ။")));
     } finally {
       setState(() => isLoading = false);
     }
@@ -77,11 +70,7 @@ class _PlantDashboardState extends State<PlantDashboard> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      appBar: AppBar(
-        title: Text("Smart Plant Monitor"),
-        backgroundColor: Colors.green[700],
-        elevation: 0,
-      ),
+      appBar: AppBar(title: Text("Smart Plant Monitor"), backgroundColor: Colors.green[700], elevation: 0),
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -96,10 +85,7 @@ class _PlantDashboardState extends State<PlantDashboard> {
                 stream: 'http://192.168.1.50:81/stream',
                 error: (context, error, stack) {
                   return Center(
-                    child: Text(
-                      "Camera Stream Disconnected",
-                      style: TextStyle(color: Colors.white),
-                    ),
+                    child: Text("Camera Stream Disconnected", style: TextStyle(color: Colors.white)),
                   );
                 },
               ),
@@ -113,84 +99,43 @@ class _PlantDashboardState extends State<PlantDashboard> {
                   // ၂။ အဓိက ကျန်းမာရေး အခြေအနေ ကတ်ပြား
                   Card(
                     elevation: 3,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     child: Container(
                       padding: EdgeInsets.all(16),
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        border: Border(
-                          left: BorderSide(color: statusColor, width: 8),
-                        ),
+                        border: Border(left: BorderSide(color: statusColor, width: 8)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            "လက်ရှိအခြေအနေ",
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[600],
-                            ),
-                          ),
+                          Text("လက်ရှိအခြေအနေ", style: TextStyle(fontSize: 14, color: Colors.grey[600])),
                           SizedBox(height: 5),
                           Text(
                             healthStatus,
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: statusColor,
-                            ),
+                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: statusColor),
                           ),
                           Divider(),
-                          Text(
-                            advice,
-                            style: TextStyle(fontSize: 14, color: Colors.black),
-                          ),
+                          Text(advice, style: TextStyle(fontSize: 14, color: Colors.black)),
                         ],
                       ),
                     ),
                   ),
                   SizedBox(height: 20),
 
-                  Text(
-                    "ဆင်ဆာများ၏ အချက်အလက်",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
+                  Text("ဆင်ဆာများ၏ အချက်အလက်", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   SizedBox(height: 10),
 
                   // ၃။ ဆင်ဆာအလိုက် အချက်အလက်ပြ ကတ်ပြားများ
                   Row(
                     children: [
-                      Expanded(
-                        child: sensorCard(
-                          Icons.thermostat,
-                          "အပူချိန်",
-                          "$temp °C",
-                          Colors.red,
-                        ),
-                      ),
+                      Expanded(child: sensorCard(Icons.thermostat, "အပူချိန်", "$temp °C", Colors.red)),
                       SizedBox(width: 10),
-                      Expanded(
-                        child: sensorCard(
-                          Icons.water_drop,
-                          "လေထုစိုထိုင်းဆ",
-                          "$humid %",
-                          Colors.blue,
-                        ),
-                      ),
+                      Expanded(child: sensorCard(Icons.water_drop, "လေထုစိုထိုင်းဆ", "$humid %", Colors.blue)),
                     ],
                   ),
                   SizedBox(height: 10),
-                  sensorCard(
-                    Icons.grass,
-                    "မြေဆီလွှာအခြေအနေ",
-                    soilMoisture == 0
-                        ? "စိုစွတ် (ကျန်းမာ)"
-                        : "ခြောက်သွေ့ (ရေလိုသည်)",
-                    Colors.brown,
-                  ),
+                  sensorCard(Icons.grass, "မြေဆီလွှာအခြေအနေ", soilMoisture == 0 ? "စိုစွတ် (ကျန်းမာ)" : "ခြောက်သွေ့ (ရေလိုသည်)", Colors.brown),
 
                   SizedBox(height: 30),
 
@@ -200,21 +145,11 @@ class _PlantDashboardState extends State<PlantDashboard> {
                     height: 50,
                     child: ElevatedButton.icon(
                       onPressed: isLoading ? null : checkPlantHealth,
-                      icon: isLoading
-                          ? CircularProgressIndicator(color: Colors.white)
-                          : Icon(Icons.refresh),
-                      label: Text(
-                        "အခြေအနေသစ် စစ်ဆေးမည်",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      icon: isLoading ? CircularProgressIndicator(color: Colors.white) : Icon(Icons.refresh),
+                      label: Text("အခြေအနေသစ် စစ်ဆေးမည်", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green[700],
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                     ),
                   ),
@@ -228,12 +163,7 @@ class _PlantDashboardState extends State<PlantDashboard> {
   }
 
   // ဆင်ဆာကတ်ပြားများအတွက် အထဲက Component ပုံစံငယ်
-  Widget sensorCard(
-    IconData icon,
-    String title,
-    String value,
-    Color iconColor,
-  ) {
+  Widget sensorCard(IconData icon, String title, String value, Color iconColor) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -246,15 +176,9 @@ class _PlantDashboardState extends State<PlantDashboard> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                ),
+                Text(title, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
                 SizedBox(height: 4),
-                Text(
-                  value,
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                ),
+                Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
               ],
             ),
           ],
