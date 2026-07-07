@@ -37,8 +37,7 @@ dependencies:
   http:
   flutter_mjpeg: 
   firebase_core: ^4.11.0
-  firebase_storage: 
-  image_picker: 
+  image_picker:
   flutter_dotenv: 
 
 dev_dependencies:
