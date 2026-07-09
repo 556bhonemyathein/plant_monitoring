@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 // import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 // import 'firebase_options.dart';
@@ -21,10 +21,15 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return CupertinoApp(
       debugShowCheckedModeBanner: false,
-      title: 'plant monitoring',
-      theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple)),
+      title: 'Plant Monitoring',
+      theme: const CupertinoThemeData(
+        primaryColor: Color(0xFF34C759),
+        brightness: Brightness.light,
+        scaffoldBackgroundColor: Color(0xFFF2F2F7),
+        textTheme: CupertinoTextThemeData(textStyle: TextStyle(fontSize: 17)),
+      ),
       home: const HomeScreen(),
     );
   }
