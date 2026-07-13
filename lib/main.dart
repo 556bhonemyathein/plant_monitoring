@@ -28,7 +28,11 @@ class MyApp extends StatelessWidget {
         primaryColor: Color(0xFF34C759),
         brightness: Brightness.light,
         scaffoldBackgroundColor: Color(0xFFF2F2F7),
-        textTheme: CupertinoTextThemeData(textStyle: TextStyle(fontSize: 17)),
+        textTheme: CupertinoTextThemeData(
+          textStyle: TextStyle(
+            fontSize: 17,
+          ),
+        ),
       ),
       home: const HomeScreen(),
     );

@@ -24,6 +24,10 @@ class _HomeScreenState extends State<HomeScreen> {
   static const Color _label = Color(0xFF1C1C1E);
   static const Color _secondaryLabel = Color(0xFF8E8E93);
 
+  // ── ESP32 network ──
+  // ESP32 ရဲ့ IP လိပ်စာ ပြောင်းရင် ဒီတစ်နေရာပဲ ပြင်ရုံပါ။
+  static const String _esp32Host = '10.250.118.154';
+
   // ── Care thresholds ──
   static const int _nMin = 50;
   static const int _pMin = 30;
@@ -68,6 +72,8 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _showError('Gemini API key not configured. Check .env file.'));
     }
+    // App ဖွင့်တာနဲ့ ESP32 က data ကို ချက်ချင်း စဆွဲယူပါ။
+    WidgetsBinding.instance.addPostFrameCallback((_) => checkPlantHealth());
   }
 
   // ── Helpers ──
@@ -85,20 +91,17 @@ class _HomeScreenState extends State<HomeScreen> {
   // ── ESP32 data fetch ──
   Future<void> checkPlantHealth() async {
     setState(() => isLoading = true);
-    final url = Uri.parse('http://192.168.1.50/data');
+    final url = Uri.parse('http://$_esp32Host/data');
 
     try {
-      final response = await http.get(url).timeout(const Duration(seconds: 5));
+      final response = await http.get(url).timeout(const Duration(seconds: 8));
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+        // ESP32 က JSON သို့မဟုတ် HTML dashboard ပြန်ပေးနိုင်တာမို့ နှစ်မျိုးလုံး ဖတ်နိုင်အောင် လုပ်ထားတယ်။
+        final data = _parseSensorData(response.body);
         setState(() {
-          temp = (data['temperature'] as num?)?.toDouble() ?? 0.0;
-          humid = (data['humidity'] as num?)?.toDouble() ?? 0.0;
-          soilMoisture = (data['soil_moisture'] as num?)?.toInt() ?? 0;
-          nitrogen = (data['nitrogen'] as num?)?.toInt() ?? 0;
-          phosphorus = (data['phosphorus'] as num?)?.toInt() ?? 0;
-          potassium = (data['potassium'] as num?)?.toInt() ?? 0;
-          light = (data['light'] as num?)?.toDouble() ?? 0.0;
+          temp = data['temperature'] ?? temp;
+          humid = data['humidity'] ?? humid;
+          soilMoisture = (data['soil_moisture'] ?? soilMoisture.toDouble()).toInt();
 
           if (soilMoisture == 1) {
             healthStatus = 'Soil is dry';
@@ -121,10 +124,52 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      _showError('Could not connect to ESP32. Please check the Wi-Fi.');
+      _showError('Could not connect to ESP32 at $_esp32Host. Please check the Wi-Fi/network.');
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
+  }
+
+  // ── Sensor data parser (JSON or HTML) ──
+  // ESP32 က JSON ပြန်ရင် JSON အဖြစ် ဖတ်တယ်။ HTML dashboard ပြန်ရင်တော့
+  // tag တွေ ဖယ်ပြီး "Temperature: 0.60 C" လိုစာသားထဲက ကိန်းဂဏန်းတွေ regex နဲ့ ဆွဲထုတ်တယ်။
+  Map<String, double> _parseSensorData(String body) {
+    final result = <String, double>{};
+
+    // 1) JSON ဖြစ်ချင်ဖြစ်နိုင်တာမို့ အရင်စမ်းဖတ်
+    final trimmed = body.trimLeft();
+    if (trimmed.startsWith('{')) {
+      try {
+        final data = json.decode(body) as Map<String, dynamic>;
+        void take(String key, String out) {
+          final v = data[key];
+          if (v is num) result[out] = v.toDouble();
+        }
+        take('temperature', 'temperature');
+        take('humidity', 'humidity');
+        take('soil_moisture', 'soil_moisture');
+        take('soilMoisture', 'soil_moisture');
+        if (result.isNotEmpty) return result;
+      } catch (_) {
+        // JSON မဟုတ်ရင် အောက်က HTML parsing ဆက်လုပ်
+      }
+    }
+
+    // 2) HTML/text အဖြစ် ဖတ် — tag တွေ ဖယ်ပြီး label နောက်က နံပါတ်ကို ရှာ
+    final text = body.replaceAll(RegExp(r'<[^>]*>'), ' ');
+    double? grab(String label) {
+      final m = RegExp('$label' r'\s*:?\s*([-\d.]+)', caseSensitive: false).firstMatch(text);
+      if (m == null) return null;
+      return double.tryParse(m.group(1)!);
+    }
+
+    final t = grab('Temperature');
+    final h = grab('Humidity');
+    final s = grab(r'Soil\s*Moisture');
+    if (t != null) result['temperature'] = t;
+    if (h != null) result['humidity'] = h;
+    if (s != null) result['soil_moisture'] = s;
+    return result;
   }
 
   // ── Image picking ──
@@ -242,6 +287,10 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 16),
               _buildStatusCard(),
               const SizedBox(height: 24),
+              _sectionTitle(CupertinoIcons.thermometer, 'Sensor Readings'),
+              const SizedBox(height: 12),
+              _buildSensorReadings(),
+              const SizedBox(height: 24),
               _sectionTitle(CupertinoIcons.list_bullet, 'Care Guide'),
               const SizedBox(height: 12),
               _careCard(
@@ -252,25 +301,27 @@ class _HomeScreenState extends State<HomeScreen> {
                 needText: 'Soil is dry — water the plant now',
                 accent: _systemBlue,
               ),
-              const SizedBox(height: 10),
-              _careCard(
-                icon: CupertinoIcons.leaf_arrow_circlepath,
-                title: 'Nutrients (NPK)',
-                needs: needsNpk,
-                okText: 'Nutrient levels are sufficient',
-                needText: 'Low nutrients — apply fertilizer',
-                accent: _systemGreen,
-                extra: _npkBreakdown(),
-              ),
-              const SizedBox(height: 10),
-              _careCard(
-                icon: CupertinoIcons.sun_max,
-                title: 'Sunlight',
-                needs: needsLight,
-                okText: 'Light level is good (${light.toStringAsFixed(0)} lux)',
-                needText: 'Too dark (${light.toStringAsFixed(0)} lux) — move to brighter spot',
-                accent: _systemOrange,
-              ),
+              // NPK နဲ့ Sunlight fields တွေကို ESP32 က data မပို့သေးတာမို့ ခဏပိတ်ထားတယ်။
+              // sensor တွေ ချိတ်ပြီးရင် အောက်ကကုဒ်ကို ပြန်ဖွင့်လိုက်ရုံပါ။
+              // const SizedBox(height: 10),
+              // _careCard(
+              //   icon: CupertinoIcons.leaf_arrow_circlepath,
+              //   title: 'Nutrients (NPK)',
+              //   needs: needsNpk,
+              //   okText: 'Nutrient levels are sufficient',
+              //   needText: 'Low nutrients — apply fertilizer',
+              //   accent: _systemGreen,
+              //   extra: _npkBreakdown(),
+              // ),
+              // const SizedBox(height: 10),
+              // _careCard(
+              //   icon: CupertinoIcons.sun_max,
+              //   title: 'Sunlight',
+              //   needs: needsLight,
+              //   okText: 'Light level is good (${light.toStringAsFixed(0)} lux)',
+              //   needText: 'Too dark (${light.toStringAsFixed(0)} lux) — move to brighter spot',
+              //   accent: _systemOrange,
+              // ),
               const SizedBox(height: 24),
               _sectionTitle(CupertinoIcons.sparkles, 'AI Plant Analysis'),
               const SizedBox(height: 12),
@@ -314,7 +365,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: CupertinoColors.black,
                 child: Mjpeg(
                   isLive: true,
-                  stream: 'http://192.168.1.50:81/stream',
+                  stream: 'http://$_esp32Host:8080/stream',
                   error: (context, error, stack) {
                     return Center(
                       child: Column(
@@ -418,6 +469,88 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // ── Sensor Readings (Temperature / Humidity / Soil Moisture) ──
+  Widget _buildSensorReadings() {
+    return Row(
+      children: [
+        _sensorTile(
+          icon: CupertinoIcons.thermometer,
+          label: 'Temperature',
+          value: temp.toStringAsFixed(2),
+          unit: '°C',
+          color: _systemOrange,
+        ),
+        const SizedBox(width: 10),
+        _sensorTile(
+          icon: CupertinoIcons.drop,
+          label: 'Humidity',
+          value: humid.toStringAsFixed(2),
+          unit: '%',
+          color: _systemBlue,
+        ),
+        const SizedBox(width: 10),
+        _sensorTile(
+          icon: CupertinoIcons.leaf_arrow_circlepath,
+          label: 'Soil Moisture',
+          value: '$soilMoisture',
+          unit: '',
+          color: _systemTeal,
+        ),
+      ],
+    );
+  }
+
+  Widget _sensorTile({
+    required IconData icon,
+    required String label,
+    required String value,
+    required String unit,
+    required Color color,
+  }) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+        decoration: BoxDecoration(
+          color: CupertinoColors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: CupertinoColors.systemGrey5),
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(11)),
+              child: Center(child: Icon(icon, color: color, size: 20)),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  value,
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: _label),
+                ),
+                if (unit.isNotEmpty) ...[
+                  const SizedBox(width: 2),
+                  Text(unit, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _secondaryLabel)),
+                ],
+              ],
+            ),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 11, color: _secondaryLabel, height: 1.2),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // ── Care Card ──
   Widget _careCard({
     required IconData icon,
@@ -491,6 +624,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ── NPK Breakdown ──
+  // ignore: unused_element  (NPK card ပြန်ဖွင့်ရင် ပြန်သုံးမယ့်ကုဒ်)
   Widget _npkBreakdown() {
     return Row(
       children: [
