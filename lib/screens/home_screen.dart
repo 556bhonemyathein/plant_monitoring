@@ -86,7 +86,7 @@ class _HomeScreenState extends State<HomeScreen> {
           temp = data['temperature'] ?? temp;
           humid = data['humidity'] ?? humid;
           soilMoisture = (data['soil_moisture'] ?? soilMoisture.toDouble()).toInt();
-
+ 
           if (soilMoisture == 1) {
             healthStatus = 'Soil is dry';
             advice = 'Action needed: Water the plant as soon as possible.';
