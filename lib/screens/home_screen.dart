@@ -86,7 +86,7 @@ class _HomeScreenState extends State<HomeScreen> {
           temp = data['temperature'] ?? temp;
           humid = data['humidity'] ?? humid;
           soilMoisture = (data['soil_moisture'] ?? soilMoisture.toDouble()).toInt();
- 
+
           if (soilMoisture == 1) {
             healthStatus = 'Soil is dry';
             advice = 'Action needed: Water the plant as soon as possible.';
@@ -129,6 +129,7 @@ class _HomeScreenState extends State<HomeScreen> {
           final v = data[key];
           if (v is num) result[out] = v.toDouble();
         }
+
         take('temperature', 'temperature');
         take('humidity', 'humidity');
         take('soil_moisture', 'soil_moisture');
@@ -142,7 +143,11 @@ class _HomeScreenState extends State<HomeScreen> {
     // 2) HTML/text အဖြစ် ဖတ် — tag တွေ ဖယ်ပြီး label နောက်က နံပါတ်ကို ရှာ
     final text = body.replaceAll(RegExp(r'<[^>]*>'), ' ');
     double? grab(String label) {
-      final m = RegExp('$label' r'\s*:?\s*([-\d.]+)', caseSensitive: false).firstMatch(text);
+      final m = RegExp(
+        '$label'
+        r'\s*:?\s*([-\d.]+)',
+        caseSensitive: false,
+      ).firstMatch(text);
       if (m == null) return null;
       return double.tryParse(m.group(1)!);
     }
@@ -176,7 +181,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Icon(CupertinoIcons.leaf_arrow_circlepath, size: 20, color: _systemGreen),
             SizedBox(width: 6),
             Text(
-              'Smart Plant Monitor',
+              'Plant Monitoring',
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 17, color: _label),
             ),
           ],
@@ -198,16 +203,16 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 12),
               _buildSensorReadings(),
               const SizedBox(height: 24),
-              _sectionTitle(CupertinoIcons.list_bullet, 'Care Guide'),
-              const SizedBox(height: 12),
-              _careCard(
-                icon: CupertinoIcons.drop,
-                title: 'Water',
-                needs: needsWater,
-                okText: 'Soil is moist — no watering needed',
-                needText: 'Soil is dry — water the plant now',
-                accent: _systemBlue,
-              ),
+              // _sectionTitle(CupertinoIcons.list_bullet, 'Care Guide'),
+              // const SizedBox(height: 12),
+              // _careCard(
+              //   icon: CupertinoIcons.drop,
+              //   title: 'Water',
+              //   needs: needsWater,
+              //   okText: 'Soil is moist — no watering needed',
+              //   needText: 'Soil is dry — water the plant now',
+              //   accent: _systemBlue,
+              // ),
               // NPK နဲ့ Sunlight fields တွေကို ESP32 က data မပို့သေးတာမို့ ခဏပိတ်ထားတယ်။
               // sensor တွေ ချိတ်ပြီးရင် အောက်ကကုဒ်ကို ပြန်ဖွင့်လိုက်ရုံပါ။
               // const SizedBox(height: 10),
@@ -367,40 +372,16 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildSensorReadings() {
     return Row(
       children: [
-        _sensorTile(
-          icon: CupertinoIcons.thermometer,
-          label: 'Temperature',
-          value: temp.toStringAsFixed(2),
-          unit: '°C',
-          color: _systemOrange,
-        ),
+        _sensorTile(icon: CupertinoIcons.thermometer, label: 'Temperature', value: temp.toStringAsFixed(2), unit: '°C', color: _systemOrange),
         const SizedBox(width: 10),
-        _sensorTile(
-          icon: CupertinoIcons.drop,
-          label: 'Humidity',
-          value: humid.toStringAsFixed(2),
-          unit: '%',
-          color: _systemBlue,
-        ),
+        _sensorTile(icon: CupertinoIcons.drop, label: 'Humidity', value: humid.toStringAsFixed(2), unit: '%', color: _systemBlue),
         const SizedBox(width: 10),
-        _sensorTile(
-          icon: CupertinoIcons.leaf_arrow_circlepath,
-          label: 'Soil Moisture',
-          value: '$soilMoisture',
-          unit: '',
-          color: _systemTeal,
-        ),
+        _sensorTile(icon: CupertinoIcons.leaf_arrow_circlepath, label: 'Soil Moisture', value: '$soilMoisture', unit: '', color: _systemTeal),
       ],
     );
   }
 
-  Widget _sensorTile({
-    required IconData icon,
-    required String label,
-    required String value,
-    required String unit,
-    required Color color,
-  }) {
+  Widget _sensorTile({required IconData icon, required String label, required String value, required String unit, required Color color}) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
@@ -429,7 +410,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 if (unit.isNotEmpty) ...[
                   const SizedBox(width: 2),
-                  Text(unit, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _secondaryLabel)),
+                  Text(
+                    unit,
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _secondaryLabel),
+                  ),
                 ],
               ],
             ),
@@ -606,5 +590,4 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-
 }
