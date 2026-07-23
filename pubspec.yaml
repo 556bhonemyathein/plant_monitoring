@@ -38,7 +38,8 @@ dependencies:
   flutter_mjpeg: 
   firebase_core: ^4.11.0
   image_picker:
-  flutter_dotenv: 
+  flutter_dotenv:
+  flutter_native_splash: ^2.4.6
 
 dev_dependencies:
   flutter_test:
@@ -51,6 +52,21 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.4
+
+# Native splash screen (run: dart run flutter_native_splash:create)
+flutter_native_splash:
+  color: "#1A7A4A"
+  color_dark: "#0F4A2C"
+  image: assets/splash/splash_logo.png
+  image_dark: assets/splash/splash_logo.png
+  android_12:
+    color: "#1A7A4A"
+    color_dark: "#0F4A2C"
+    image: assets/splash/splash_logo_android12.png
+    image_dark: assets/splash/splash_logo_android12.png
+  android: true
+  ios: true
+  web: true
 
 # App launcher icon (run: dart run flutter_launcher_icons)
 flutter_launcher_icons:
