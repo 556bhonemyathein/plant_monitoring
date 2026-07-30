@@ -22,7 +22,7 @@ class PlantService extends ChangeNotifier {
 
   // ── Network ──
   // ESP32 ရဲ့ IP လိပ်စာ။ Settings tab ကနေ ပြောင်းနိုင်တယ်။
-  String host = '10.250.118.154';
+  String host = '10.22.208.154';
   int streamPort = 8080;
 
   String get dataUrl => 'http://$host/data';
