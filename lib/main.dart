@@ -3,7 +3,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 // import 'firebase_options.dart';
-import 'screens/home_screen.dart';
+import 'screens/root_shell.dart';
+import 'theme/app_colors.dart';
 
 void main() async {
   final binding = WidgetsFlutterBinding.ensureInitialized();
@@ -31,16 +32,16 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Plant Monitoring',
       theme: const CupertinoThemeData(
-        primaryColor: Color(0xFF34C759),
+        primaryColor: AppColors.green,
         brightness: Brightness.light,
-        scaffoldBackgroundColor: Color(0xFFF2F2F7),
+        scaffoldBackgroundColor: AppColors.background,
         textTheme: CupertinoTextThemeData(
           textStyle: TextStyle(
             fontSize: 17,
           ),
         ),
       ),
-      home: const HomeScreen(),
+      home: const RootShell(),
     );
   }
 }
