@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+import '../l10n/app_strings.dart';
 import '../models/ai_care_advice.dart';
 
 /// Gemini call တစ်ခု မအောင်မြင်တဲ့အခါ ပစ်တဲ့ error။
@@ -33,6 +34,9 @@ class GeminiService {
   }
 
   String get _endpoint => 'https://generativelanguage.googleapis.com/v1beta/models/$_model:generateContent';
+
+  /// Settings မှာ ရွေးထားတဲ့ ဘာသာစကားနဲ့ပဲ AI က ပြန်ဖြေအောင် prompt ထဲ ထည့်ပေးတယ်။
+  String get _languageInstruction => 'Write every piece of text you return in ${LocaleController.instance.language.promptName}. ';
 
   /// Sensor readings သီးသန့် (ဓာတ်ပုံမပါဘဲ) ကို Gemini ဆီပို့ပြီး
   /// Home screen ရဲ့ Care Guide အတွက် structured JSON အကြံပြုချက် ပြန်ယူတယ်။
@@ -65,7 +69,8 @@ class GeminiService {
         '$context\n'
         'Give practical care guidance for the plant based ONLY on these readings. '
         'Do not invent readings that are not listed. '
-        'Return 2 to 4 actions, ordered with the most urgent first.\n\n'
+        'Return 2 to 4 actions, ordered with the most urgent first. '
+        '$_languageInstruction\n\n'
         'Respond with JSON only, in exactly this shape:\n'
         '{"headline": "short status, max 6 words", '
         '"summary": "1-2 sentence plain-language explanation", '
@@ -200,7 +205,8 @@ class GeminiService {
             '3. **Issues Detected**: Any diseases, pests, nutrient deficiencies, or abnormalities.\n'
             '4. **Care Recommendations**: Watering, sunlight, soil, and other care tips.\n\n'
             '$sensorContext\n'
-            'Consider the above sensor data in your analysis and recommendations.',
+            'Consider the above sensor data in your analysis and recommendations. '
+            '$_languageInstruction',
       },
       {
         // အရင်က image/jpeg လို့ အမြဲ ပို့နေတာမို့ PNG/WebP/HEIC ဖိုင်ဆိုရင် API က 400 ပြန်တယ်။

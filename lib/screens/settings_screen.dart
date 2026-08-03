@@ -1,10 +1,11 @@
 import 'package:flutter/cupertino.dart';
 
+import '../l10n/app_strings.dart';
 import '../services/plant_service.dart';
 import '../theme/app_colors.dart';
 import 'root_shell.dart';
 
-/// Settings tab — ESP32 ရဲ့ IP/port ကို app ထဲကနေတိုက်ရိုက် ပြောင်းနိုင်တယ်။
+/// Settings tab — ESP32 ရဲ့ IP/port နဲ့ app ဘာသာစကားကို ဒီကနေ ပြောင်းနိုင်တယ်။
 /// (မှတ်ချက်: ယခုအဆင့်မှာ memory ထဲသာ သိမ်းတာမို့ app ပိတ်ရင် default ပြန်ဖြစ်တယ်။)
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -25,25 +26,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.dispose();
   }
 
-  void _save() {
+  void _save(AppStrings s) {
     _service.updateHost(_hostController.text, port: int.tryParse(_portController.text.trim()));
     FocusScope.of(context).unfocus();
+    _alert(
+      title: s.savedTitle,
+      message: s.savedMessage(_service.host, _service.streamPort),
+      okLabel: s.ok,
+    );
+  }
+
+  /// Test connection — ရလဒ်ကို စောင့်ပြီး အောင်/မအောင် dialog နဲ့ အသိပေးတယ်။
+  /// (အရင်က refresh ကို fire-and-forget ခေါ်တာမို့ ဘာဖြစ်သွားလဲ မသိရဘူး။)
+  Future<void> _testConnection(AppStrings s) async {
+    FocusScope.of(context).unfocus();
+    await _service.refresh();
+    if (!mounted) return;
+    final error = _service.lastError;
+    _alert(
+      title: error == null ? s.connectedTitle : s.connectionFailedTitle,
+      message: error == null
+          ? s.connectedMessage(_service.dataUrl)
+          : s.connectionError(error, host: _service.host, statusCode: _service.lastErrorStatusCode),
+      okLabel: s.ok,
+    );
+  }
+
+  void _alert({required String title, required String message, required String okLabel}) {
     showCupertinoDialog(
       context: context,
       builder: (ctx) => CupertinoAlertDialog(
-        title: const Text('Saved'),
-        content: Text('Now using ${_service.host} for sensor data and port ${_service.streamPort} for the camera stream.'),
-        actions: [CupertinoDialogAction(isDefaultAction: true, onPressed: () => Navigator.pop(ctx), child: const Text('OK'))],
+        title: Text(title),
+        content: Text(message),
+        actions: [CupertinoDialogAction(isDefaultAction: true, onPressed: () => Navigator.pop(ctx), child: Text(okLabel))],
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocale.of(context);
     return CupertinoPageScaffold(
       backgroundColor: AppColors.background,
-      navigationBar: const CupertinoNavigationBar(
-        middle: Text('Settings', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.label)),
+      navigationBar: CupertinoNavigationBar(
+        middle: Text(s.settingsTitle, style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.label)),
       ),
       child: SafeArea(
         bottom: false,
@@ -52,13 +78,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
           builder: (context, _) => ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, kNavBarClearance),
             children: [
-              _sectionLabel('DEVICE'),
+              _sectionLabel(s.languageSection),
+              _card(child: const _LanguagePicker()),
+              const SizedBox(height: 6),
+              _footnote(s.languageFooter),
+              const SizedBox(height: 20),
+              _sectionLabel(s.deviceSection),
               _card(
                 child: Column(
                   children: [
-                    _field(label: 'ESP32 host / IP', controller: _hostController, keyboardType: TextInputType.url, placeholder: '192.168.1.50'),
+                    _field(label: s.hostField, controller: _hostController, keyboardType: TextInputType.url, placeholder: '192.168.1.50'),
                     const _Separator(),
-                    _field(label: 'Camera stream port', controller: _portController, keyboardType: TextInputType.number, placeholder: '8080'),
+                    _field(label: s.portField, controller: _portController, keyboardType: TextInputType.number, placeholder: '8080'),
                   ],
                 ),
               ),
@@ -69,62 +100,73 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   color: AppColors.green,
                   borderRadius: BorderRadius.circular(14),
                   padding: EdgeInsets.zero,
-                  onPressed: _save,
-                  child: const Text('Save device settings', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                  onPressed: () => _save(s),
+                  child: Text(
+                    s.saveDeviceSettings,
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: CupertinoColors.white),
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
-              _sectionLabel('CONNECTION'),
+              _sectionLabel(s.connectionSection),
               _card(
                 child: Column(
                   children: [
-                    _row(icon: CupertinoIcons.link, title: 'Data endpoint', value: _service.dataUrl, color: AppColors.blue),
+                    _row(icon: CupertinoIcons.link, title: s.dataEndpoint, value: _service.dataUrl, color: AppColors.blue),
                     const _Separator(),
-                    _row(icon: CupertinoIcons.videocam, title: 'Stream endpoint', value: _service.streamUrl, color: AppColors.purple),
+                    _row(icon: CupertinoIcons.videocam, title: s.streamEndpoint, value: _service.streamUrl, color: AppColors.purple),
                     const _Separator(),
                     _row(
                       icon: _service.lastError == null && _service.hasData ? CupertinoIcons.checkmark_seal_fill : CupertinoIcons.exclamationmark_circle,
-                      title: 'Last sync',
-                      value: _service.lastError ?? _service.lastUpdatedLabel,
+                      title: s.lastSync,
+                      value: _service.lastError == null
+                          ? s.lastUpdatedLabel(_service.lastUpdated)
+                          : s.connectionError(_service.lastError!, host: _service.host, statusCode: _service.lastErrorStatusCode),
                       color: _service.lastError == null && _service.hasData ? AppColors.green : AppColors.orange,
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 14),
-              SizedBox(
+              // Secondary button — card အဖြူပေါ်မှာ border ခြယ်ထားတာမို့
+              // page background (grey) နဲ့ မရောဘဲ initial state မှာကတည်းက မြင်ရတယ်။
+              Container(
                 height: 48,
+                decoration: BoxDecoration(
+                  color: AppColors.card,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.separator),
+                ),
                 child: CupertinoButton(
-                  color: AppColors.fill,
                   borderRadius: BorderRadius.circular(14),
                   padding: EdgeInsets.zero,
-                  onPressed: _service.isLoading ? null : _service.refresh,
+                  onPressed: _service.isLoading ? null : () => _testConnection(s),
                   child: _service.isLoading
                       ? const CupertinoActivityIndicator()
-                      : const Text(
-                          'Test connection',
-                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.label),
+                      : Text(
+                          s.testConnection,
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.blue),
                         ),
                 ),
               ),
               const SizedBox(height: 24),
-              _sectionLabel('CARE THRESHOLDS'),
+              _sectionLabel(s.thresholdsSection),
               _card(
                 child: Column(
                   children: [
-                    _row(icon: CupertinoIcons.leaf_arrow_circlepath, title: 'Nitrogen minimum', value: '${PlantService.nMin} mg/kg', color: AppColors.green),
+                    _row(icon: CupertinoIcons.leaf_arrow_circlepath, title: s.nitrogenMin, value: '${PlantService.nMin} mg/kg', color: AppColors.green),
                     const _Separator(),
-                    _row(icon: CupertinoIcons.leaf_arrow_circlepath, title: 'Phosphorus minimum', value: '${PlantService.pMin} mg/kg', color: AppColors.green),
+                    _row(icon: CupertinoIcons.leaf_arrow_circlepath, title: s.phosphorusMin, value: '${PlantService.pMin} mg/kg', color: AppColors.green),
                     const _Separator(),
-                    _row(icon: CupertinoIcons.leaf_arrow_circlepath, title: 'Potassium minimum', value: '${PlantService.kMin} mg/kg', color: AppColors.green),
+                    _row(icon: CupertinoIcons.leaf_arrow_circlepath, title: s.potassiumMin, value: '${PlantService.kMin} mg/kg', color: AppColors.green),
                     const _Separator(),
-                    _row(icon: CupertinoIcons.sun_max, title: 'Light minimum', value: '${PlantService.lightMin.toStringAsFixed(0)} lux', color: AppColors.orange),
+                    _row(icon: CupertinoIcons.sun_max, title: s.lightMin, value: '${PlantService.lightMin.toStringAsFixed(0)} lux', color: AppColors.orange),
                   ],
                 ),
               ),
               const SizedBox(height: 20),
-              const Center(
-                child: Text('Plant Monitoring · v1.0.0', style: TextStyle(fontSize: 12.5, color: AppColors.secondaryLabel)),
+              Center(
+                child: Text(s.appVersion, style: const TextStyle(fontSize: 12.5, color: AppColors.secondaryLabel)),
               ),
             ],
           ),
@@ -140,6 +182,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         text,
         style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, letterSpacing: 0.6, color: AppColors.secondaryLabel),
       ),
+    );
+  }
+
+  Widget _footnote(String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Text(text, style: const TextStyle(fontSize: 12, color: AppColors.secondaryLabel, height: 1.3)),
     );
   }
 
@@ -209,6 +258,53 @@ class _SettingsScreenState extends State<SettingsScreen> {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 13, color: AppColors.secondaryLabel),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// English / မြန်မာ ရွေးချယ်ရန် segmented control။
+/// ရွေးလိုက်တာနဲ့ [LocaleController] က notify လုပ်ပြီး app တစ်ခုလုံး ဘာသာပြန်သွားတယ်။
+class _LanguagePicker extends StatelessWidget {
+  const _LanguagePicker();
+
+  @override
+  Widget build(BuildContext context) {
+    final current = AppLocale.languageOf(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(color: AppColors.blue.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+            child: const Icon(CupertinoIcons.globe, size: 15, color: AppColors.blue),
+          ),
+          const SizedBox(width: 11),
+          Expanded(
+            child: SizedBox(
+              height: 32,
+              child: CupertinoSlidingSegmentedControl<AppLanguage>(
+                groupValue: current,
+                onValueChanged: (value) {
+                  if (value != null) LocaleController.instance.setLanguage(value);
+                },
+                children: {
+                  for (final language in AppLanguage.values)
+                    language: Text(
+                      language.label,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: language == current ? FontWeight.w600 : FontWeight.w400,
+                        color: AppColors.label,
+                      ),
+                    ),
+                },
+              ),
             ),
           ),
         ],

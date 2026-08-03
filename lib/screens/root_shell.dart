@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 
+import '../l10n/app_strings.dart';
 import '../theme/app_colors.dart';
 import '../widgets/glass_nav_bar.dart';
 import 'ai_scan_screen.dart';
@@ -25,15 +26,16 @@ class RootShell extends StatefulWidget {
 class _RootShellState extends State<RootShell> {
   int _index = 0;
 
-  static const List<NavDestination> _destinations = [
-    NavDestination(icon: CupertinoIcons.house, activeIcon: CupertinoIcons.house_fill, label: 'Home', color: AppColors.green),
-    NavDestination(icon: CupertinoIcons.videocam, activeIcon: CupertinoIcons.videocam_fill, label: 'Live', color: AppColors.blue),
-    NavDestination(icon: CupertinoIcons.sparkles, activeIcon: CupertinoIcons.sparkles, label: 'AI Scan', color: AppColors.purple),
-    NavDestination(icon: CupertinoIcons.settings, activeIcon: CupertinoIcons.settings_solid, label: 'Settings', color: AppColors.secondaryLabel),
+  List<NavDestination> _destinations(AppStrings s) => [
+    NavDestination(icon: CupertinoIcons.house, activeIcon: CupertinoIcons.house_fill, label: s.navHome, color: AppColors.green),
+    NavDestination(icon: CupertinoIcons.videocam, activeIcon: CupertinoIcons.videocam_fill, label: s.navLive, color: AppColors.blue),
+    NavDestination(icon: CupertinoIcons.sparkles, activeIcon: CupertinoIcons.sparkles, label: s.navAiScan, color: AppColors.purple),
+    NavDestination(icon: CupertinoIcons.settings, activeIcon: CupertinoIcons.settings_solid, label: s.navSettings, color: AppColors.secondaryLabel),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocale.of(context);
     return CupertinoPageScaffold(
       backgroundColor: AppColors.background,
       child: Stack(
@@ -49,7 +51,7 @@ class _RootShellState extends State<RootShell> {
             right: 0,
             bottom: 0,
             child: GlassNavBar(
-              destinations: _destinations,
+              destinations: _destinations(s),
               currentIndex: _index,
               onSelected: (i) => setState(() => _index = i),
             ),

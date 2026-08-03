@@ -1,8 +1,7 @@
 import 'dart:ui' as ui;
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_mjpeg/flutter_mjpeg.dart';
-
+import '../l10n/app_strings.dart';
 import '../models/ai_care_advice.dart';
 import '../services/plant_service.dart';
 import '../theme/app_colors.dart';
@@ -18,6 +17,9 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final PlantService _service = PlantService.instance;
 
+  /// build() တိုင်းမှာ အသစ်ယူတယ် — helper method တွေက context မကိုင်ဘဲ သုံးနိုင်အောင်။
+  late AppStrings _s = AppLocale.of(context);
+
   @override
   void initState() {
     super.initState();
@@ -28,34 +30,40 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _refresh() async {
     await _service.refresh();
     final error = _service.lastError;
-    if (error != null && mounted) _showError(error);
+    if (error != null && mounted) {
+      _showError(_s.connectionError(error, host: _service.host, statusCode: _service.lastErrorStatusCode));
+    }
   }
 
   void _showError(String message) {
     showCupertinoDialog(
       context: context,
       builder: (ctx) => CupertinoAlertDialog(
-        title: const Text('Error'),
+        title: Text(_s.error),
         content: Text(message),
-        actions: [CupertinoDialogAction(isDefaultAction: true, onPressed: () => Navigator.pop(ctx), child: const Text('OK'))],
+        actions: [CupertinoDialogAction(isDefaultAction: true, onPressed: () => Navigator.pop(ctx), child: Text(_s.ok))],
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    _s = AppLocale.of(context);
     return CupertinoPageScaffold(
       backgroundColor: AppColors.background,
       navigationBar: CupertinoNavigationBar(
         backgroundColor: CupertinoTheme.of(context).barBackgroundColor,
-        middle: const Row(
+        middle: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(CupertinoIcons.leaf_arrow_circlepath, size: 20, color: AppColors.green),
-            SizedBox(width: 6),
-            Text(
-              'Plant Monitoring',
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 17, color: AppColors.label),
+            const Icon(CupertinoIcons.leaf_arrow_circlepath, size: 20, color: AppColors.green),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                _s.appTitle,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 17, color: AppColors.label),
+              ),
             ),
           ],
         ),
@@ -76,7 +84,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 16),
                     _buildStatusCard(),
                     const SizedBox(height: 24),
-                    _sectionTitle(CupertinoIcons.thermometer, 'Sensor Readings'),
+                    _sectionTitle(CupertinoIcons.thermometer, _s.sensorReadings),
                     const SizedBox(height: 12),
                     _buildSensorReadings(),
                     const SizedBox(height: 24),
@@ -87,7 +95,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     _primaryButton(
                       onPressed: _service.isLoading ? null : _refresh,
                       icon: CupertinoIcons.arrow_clockwise,
-                      label: 'Check for updates',
+                      label: _s.checkForUpdates,
                       loading: _service.isLoading,
                       color: AppColors.green,
                     ),
@@ -118,13 +126,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   isLive: true,
                   stream: _service.streamUrl,
                   error: (context, error, stack) {
-                    return const Center(
+                    return Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(CupertinoIcons.exclamationmark_triangle_fill, color: CupertinoColors.white, size: 36),
-                          SizedBox(height: 8),
-                          Text('Camera Stream Disconnected', style: TextStyle(color: CupertinoColors.white, fontSize: 14)),
+                          const Icon(CupertinoIcons.exclamationmark_triangle_fill, color: CupertinoColors.white, size: 36),
+                          const SizedBox(height: 8),
+                          Text(
+                            _s.cameraStreamDisconnected,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: CupertinoColors.white, fontSize: 14),
+                          ),
                         ],
                       ),
                     );
@@ -152,9 +164,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           decoration: const BoxDecoration(color: AppColors.red, shape: BoxShape.circle),
                         ),
                         const SizedBox(width: 5),
-                        const Text(
-                          'LIVE',
-                          style: TextStyle(color: CupertinoColors.white, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1),
+                        Text(
+                          _s.live,
+                          style: const TextStyle(color: CupertinoColors.white, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1),
                         ),
                       ],
                     ),
@@ -195,19 +207,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'CURRENT STATUS',
-                      style: TextStyle(fontSize: 11, letterSpacing: 0.5, fontWeight: FontWeight.w600, color: AppColors.secondaryLabel),
+                    Text(
+                      _s.currentStatus,
+                      style: const TextStyle(fontSize: 11, letterSpacing: 0.5, fontWeight: FontWeight.w600, color: AppColors.secondaryLabel),
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      _service.headline,
+                      _s.verdictHeadline(_service.verdict),
                       style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: statusColor),
                     ),
                   ],
                 ),
               ),
-              Text(_service.lastUpdatedLabel, style: const TextStyle(fontSize: 11, color: AppColors.secondaryLabel)),
+              Text(_s.lastUpdatedLabel(_service.lastUpdated), style: const TextStyle(fontSize: 11, color: AppColors.secondaryLabel)),
             ],
           ),
           const SizedBox(height: 14),
@@ -215,7 +227,7 @@ class _HomeScreenState extends State<HomeScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(color: AppColors.fill, borderRadius: BorderRadius.circular(10)),
-            child: Text(_service.advice, style: const TextStyle(fontSize: 14, color: AppColors.label, height: 1.35)),
+            child: Text(_s.verdictAdvice(_service.verdict), style: const TextStyle(fontSize: 14, color: AppColors.label, height: 1.35)),
           ),
         ],
       ),
@@ -228,17 +240,17 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         _sensorTile(
           icon: CupertinoIcons.thermometer,
-          label: 'Temperature',
+          label: _s.temperature,
           value: _service.temp.toStringAsFixed(2),
           unit: '°C',
           color: AppColors.orange,
         ),
         const SizedBox(width: 10),
-        _sensorTile(icon: CupertinoIcons.drop, label: 'Humidity', value: _service.humid.toStringAsFixed(2), unit: '%', color: AppColors.blue),
+        _sensorTile(icon: CupertinoIcons.drop, label: _s.humidity, value: _service.humid.toStringAsFixed(2), unit: '%', color: AppColors.blue),
         const SizedBox(width: 10),
         _sensorTile(
           icon: CupertinoIcons.leaf_arrow_circlepath,
-          label: 'Soil Moisture',
+          label: _s.soilMoisture,
           value: '${_service.soilMoisture}',
           unit: '',
           color: AppColors.teal,
@@ -303,17 +315,20 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         const Icon(CupertinoIcons.sparkles, size: 18, color: AppColors.purple),
         const SizedBox(width: 8),
-        const Text(
-          'Care Guide',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.label),
+        Flexible(
+          child: Text(
+            _s.careGuide,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.label),
+          ),
         ),
         const SizedBox(width: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
           decoration: BoxDecoration(color: AppColors.purple.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(7)),
-          child: const Text(
-            'AI',
-            style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 0.4, color: AppColors.purple),
+          child: Text(
+            _s.aiBadge,
+            style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 0.4, color: AppColors.purple),
           ),
         ),
         const Spacer(),
@@ -335,8 +350,8 @@ class _HomeScreenState extends State<HomeScreen> {
       return _noticeCard(
         icon: CupertinoIcons.antenna_radiowaves_left_right,
         color: AppColors.secondaryLabel,
-        title: 'Waiting for sensor data',
-        message: 'Once the ESP32 reports its readings, the AI will suggest what your plant needs.',
+        title: _s.waitingForSensorTitle,
+        message: _s.waitingForSensorMessage,
       );
     }
 
@@ -344,8 +359,8 @@ class _HomeScreenState extends State<HomeScreen> {
       return _noticeCard(
         icon: CupertinoIcons.sparkles,
         color: AppColors.purple,
-        title: 'Asking the AI…',
-        message: 'Reading your latest sensor values and writing a care plan.',
+        title: _s.askingAiTitle,
+        message: _s.askingAiMessage,
         busy: true,
       );
     }
@@ -357,8 +372,8 @@ class _HomeScreenState extends State<HomeScreen> {
           _noticeCard(
             icon: CupertinoIcons.exclamationmark_circle,
             color: AppColors.orange,
-            title: 'AI guide unavailable',
-            message: _service.aiError ?? 'Could not reach Gemini. Showing the built-in threshold guide instead.',
+            title: _s.aiUnavailableTitle,
+            message: _service.aiError ?? _s.aiUnavailableMessage,
           ),
           const SizedBox(height: 10),
           _thresholdGuide(),
@@ -405,9 +420,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _aiActionCard(CareAction action) {
     final (Color color, IconData icon, String badge) = switch (action.urgency) {
-      CareUrgency.now => (AppColors.red, CupertinoIcons.exclamationmark_triangle_fill, 'Now'),
-      CareUrgency.soon => (AppColors.orange, CupertinoIcons.clock_fill, 'Soon'),
-      CareUrgency.ok => (AppColors.green, CupertinoIcons.checkmark_alt, 'OK'),
+      CareUrgency.now => (AppColors.red, CupertinoIcons.exclamationmark_triangle_fill, _s.urgencyNow),
+      CareUrgency.soon => (AppColors.orange, CupertinoIcons.clock_fill, _s.urgencySoon),
+      CareUrgency.ok => (AppColors.green, CupertinoIcons.checkmark_alt, _s.urgencyOk),
     };
 
     return Container(
@@ -461,10 +476,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _thresholdGuide() {
     return _careCard(
       icon: CupertinoIcons.drop,
-      title: 'Water',
+      title: _s.water,
       needs: _service.needsWater,
-      okText: 'Soil is moist — no watering needed',
-      needText: 'Soil is dry — water the plant now',
+      okText: _s.soilMoistOk,
+      needText: _s.soilDryAction,
       accent: AppColors.blue,
     );
     // NPK နဲ့ Sunlight fields တွေကို ESP32 က data မပို့သေးတာမို့ ခဏပိတ်ထားတယ်။
@@ -562,7 +577,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     Icon(needs ? CupertinoIcons.exclamationmark_triangle : CupertinoIcons.checkmark_alt, size: 13, color: color),
                     const SizedBox(width: 3),
                     Text(
-                      needs ? 'Action' : 'OK',
+                      needs ? _s.actionBadge : _s.okBadge,
                       style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color),
                     ),
                   ],
@@ -611,7 +626,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const Text('mg/kg', style: TextStyle(fontSize: 10, color: AppColors.secondaryLabel)),
             const SizedBox(height: 2),
             Text(
-              low ? 'Low' : 'OK',
+              low ? _s.lowBadge : _s.okBadge,
               style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: c),
             ),
           ],

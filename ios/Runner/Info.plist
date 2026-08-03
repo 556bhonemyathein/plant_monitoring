@@ -26,6 +26,15 @@
 		<string>$(FLUTTER_BUILD_NUMBER)</string>
 		<key>LSRequiresIPhoneOS</key>
 		<true/>
+		<key>NSAppTransportSecurity</key>
+		<dict>
+			<key>NSAllowsArbitraryLoads</key>
+			<true/>
+			<key>NSAllowsLocalNetworking</key>
+			<true/>
+		</dict>
+		<key>NSLocalNetworkUsageDescription</key>
+		<string>Plant Monitoring needs local network access to read sensor data and the camera stream from your ESP32 device.</string>
 		<key>UIApplicationSceneManifest</key>
 		<dict>
 			<key>UIApplicationSupportsMultipleScenes</key>
