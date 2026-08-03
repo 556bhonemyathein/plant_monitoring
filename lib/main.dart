@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 // import 'firebase_options.dart';
+import 'l10n/app_strings.dart';
 import 'screens/root_shell.dart';
 import 'theme/app_colors.dart';
 
@@ -28,20 +29,25 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Plant Monitoring',
-      theme: const CupertinoThemeData(
-        primaryColor: AppColors.green,
-        brightness: Brightness.light,
-        scaffoldBackgroundColor: AppColors.background,
-        textTheme: CupertinoTextThemeData(
-          textStyle: TextStyle(
-            fontSize: 17,
+    // AppLocale က InheritedNotifier ဖြစ်တာမို့ ဘာသာစကား ပြောင်းလိုက်တာနဲ့
+    // `AppLocale.of(context)` သုံးထားတဲ့ screen တွေအားလုံး rebuild ဖြစ်သွားတယ်။
+    return AppLocale(
+      controller: LocaleController.instance,
+      child: CupertinoApp(
+        debugShowCheckedModeBanner: false,
+        title: 'Plant Monitoring',
+        theme: const CupertinoThemeData(
+          primaryColor: AppColors.green,
+          brightness: Brightness.light,
+          scaffoldBackgroundColor: AppColors.background,
+          textTheme: CupertinoTextThemeData(
+            textStyle: TextStyle(
+              fontSize: 17,
+            ),
           ),
         ),
+        home: const RootShell(),
       ),
-      home: const RootShell(),
     );
   }
 }

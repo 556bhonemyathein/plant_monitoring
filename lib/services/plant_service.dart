@@ -11,6 +11,13 @@ import 'gemini_service.dart';
 /// Plant အခြေအနေ အကြီးစား အမျိုးအစားများ။
 enum PlantStatusLevel { unknown, good, warning, critical }
 
+/// စာသားအစား verdict ကို enum အဖြစ်ထားတာမို့ UI ကပဲ ဘာသာစကားအလိုက်
+/// [AppStrings.verdictHeadline] နဲ့ ဘာသာပြန်ပြနိုင်တယ်။
+enum PlantVerdict { unknown, dry, pestRisk, tooHot, good }
+
+/// ချိတ်ဆက်မှု အမှား အမျိုးအစား (စာသားက UI ဘက်မှာ ဘာသာပြန်ထားတယ်)။
+enum ConnectionError { unreachable, badStatus }
+
 /// ESP32 sensor data + verdict တွေကို တစ်နေရာတည်းမှာ စုထားပြီး
 /// tab အားလုံး (Home / Camera / AI / Settings) မျှသုံးနိုင်တဲ့ store။
 ///
@@ -22,7 +29,7 @@ class PlantService extends ChangeNotifier {
 
   // ── Network ──
   // ESP32 ရဲ့ IP လိပ်စာ။ Settings tab ကနေ ပြောင်းနိုင်တယ်။
-  String host = '10.22.208.154';
+  String host = '172.24.78.154';
   int streamPort = 8080;
 
   String get dataUrl => 'http://$host/data';
@@ -46,7 +53,8 @@ class PlantService extends ChangeNotifier {
   // ── Meta ──
   bool isLoading = false;
   bool hasData = false;
-  String? lastError;
+  ConnectionError? lastError;
+  int? lastErrorStatusCode;
   DateTime? lastUpdated;
 
   // ── Derived verdicts ──
@@ -58,8 +66,7 @@ class PlantService extends ChangeNotifier {
   bool get needsLight => light < lightMin;
 
   PlantStatusLevel level = PlantStatusLevel.unknown;
-  String headline = 'Not checked yet';
-  String advice = 'Tap refresh to read the latest sensor values.';
+  PlantVerdict verdict = PlantVerdict.unknown;
 
   Color get statusColor => switch (level) {
     PlantStatusLevel.good => AppColors.green,
@@ -74,15 +81,6 @@ class PlantService extends ChangeNotifier {
     PlantStatusLevel.critical => CupertinoIcons.exclamationmark_triangle_fill,
     PlantStatusLevel.unknown => CupertinoIcons.leaf_arrow_circlepath,
   };
-
-  String get lastUpdatedLabel {
-    final at = lastUpdated;
-    if (at == null) return 'Never updated';
-    final diff = DateTime.now().difference(at);
-    if (diff.inSeconds < 60) return 'Updated just now';
-    if (diff.inMinutes < 60) return 'Updated ${diff.inMinutes} min ago';
-    return 'Updated ${diff.inHours} hr ago';
-  }
 
   // ── AI care guide ──
   AiCareAdvice? aiAdvice;
@@ -133,7 +131,8 @@ class PlantService extends ChangeNotifier {
     try {
       final response = await http.get(Uri.parse(dataUrl)).timeout(const Duration(seconds: 8));
       if (response.statusCode != 200) {
-        lastError = 'ESP32 responded with HTTP ${response.statusCode}.';
+        lastError = ConnectionError.badStatus;
+        lastErrorStatusCode = response.statusCode;
       } else {
         // ESP32 က JSON သို့မဟုတ် HTML dashboard ပြန်ပေးနိုင်တာမို့ နှစ်မျိုးလုံး ဖတ်နိုင်အောင် လုပ်ထားတယ်။
         final data = _parseSensorData(response.body);
@@ -143,10 +142,12 @@ class PlantService extends ChangeNotifier {
         _recomputeVerdict();
         hasData = true;
         lastError = null;
+        lastErrorStatusCode = null;
         lastUpdated = DateTime.now();
       }
     } catch (_) {
-      lastError = 'Could not connect to ESP32 at $host. Please check the Wi-Fi/network.';
+      lastError = ConnectionError.unreachable;
+      lastErrorStatusCode = null;
     } finally {
       isLoading = false;
       notifyListeners();
@@ -159,20 +160,16 @@ class PlantService extends ChangeNotifier {
   void _recomputeVerdict() {
     if (soilMoisture == 1) {
       level = PlantStatusLevel.warning;
-      headline = 'Soil is dry';
-      advice = 'Action needed: Water the plant as soon as possible.';
+      verdict = PlantVerdict.dry;
     } else if (humid > 80.0 && temp > 28.0) {
       level = PlantStatusLevel.critical;
-      headline = 'High risk of pests/fungus';
-      advice = 'Action needed: Improve air circulation and apply pesticide preventively.';
+      verdict = PlantVerdict.pestRisk;
     } else if (temp > 35.0) {
       level = PlantStatusLevel.warning;
-      headline = 'Temperature is too high';
-      advice = 'Action needed: Move the plant to shade away from direct sunlight.';
+      verdict = PlantVerdict.tooHot;
     } else {
       level = PlantStatusLevel.good;
-      headline = 'Plant health is good';
-      advice = 'Action needed: None. Keep maintaining it as usual.';
+      verdict = PlantVerdict.good;
     }
   }
 

@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_mjpeg/flutter_mjpeg.dart';
 
+import '../l10n/app_strings.dart';
 import '../services/plant_service.dart';
 import '../theme/app_colors.dart';
 import 'root_shell.dart';
@@ -25,6 +26,7 @@ class _CameraScreenState extends State<CameraScreen> {
   @override
   Widget build(BuildContext context) {
     final topInset = MediaQuery.viewPaddingOf(context).top;
+    final s = AppLocale.of(context);
 
     return ListenableBuilder(
       listenable: _service,
@@ -48,18 +50,18 @@ class _CameraScreenState extends State<CameraScreen> {
                 right: 16,
                 child: Row(
                   children: [
-                    const _LiveBadge(),
+                    _LiveBadge(label: s.live),
                     const Spacer(),
                     _GlassPill(
                       onTap: () => setState(() => _streamAttempt++),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(CupertinoIcons.arrow_clockwise, size: 15, color: CupertinoColors.white),
-                          SizedBox(width: 6),
+                          const Icon(CupertinoIcons.arrow_clockwise, size: 15, color: CupertinoColors.white),
+                          const SizedBox(width: 6),
                           Text(
-                            'Reload',
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: CupertinoColors.white),
+                            s.reload,
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: CupertinoColors.white),
                           ),
                         ],
                       ),
@@ -71,7 +73,7 @@ class _CameraScreenState extends State<CameraScreen> {
                 left: 16,
                 right: 16,
                 bottom: kNavBarClearance,
-                child: _OverlayStats(service: _service),
+                child: _OverlayStats(service: _service, strings: s),
               ),
             ],
           ),
@@ -105,19 +107,21 @@ class _Scrim extends StatelessWidget {
 }
 
 class _LiveBadge extends StatelessWidget {
-  const _LiveBadge();
+  const _LiveBadge({required this.label});
+
+  final String label;
 
   @override
   Widget build(BuildContext context) {
-    return const _GlassPill(
+    return _GlassPill(
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _Dot(),
-          SizedBox(width: 6),
+          const _Dot(),
+          const SizedBox(width: 6),
           Text(
-            'LIVE',
-            style: TextStyle(color: CupertinoColors.white, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1),
+            label,
+            style: const TextStyle(color: CupertinoColors.white, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1),
           ),
         ],
       ),
@@ -140,9 +144,10 @@ class _Dot extends StatelessWidget {
 
 /// အောက်ခြေမှာ ပြတဲ့ sensor အကျဉ်းချုပ် glass card။
 class _OverlayStats extends StatelessWidget {
-  const _OverlayStats({required this.service});
+  const _OverlayStats({required this.service, required this.strings});
 
   final PlantService service;
+  final AppStrings strings;
 
   @override
   Widget build(BuildContext context) {
@@ -166,12 +171,12 @@ class _OverlayStats extends StatelessWidget {
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      service.headline,
+                      strings.verdictHeadline(service.verdict),
                       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: CupertinoColors.white),
                     ),
                   ),
                   Text(
-                    service.lastUpdatedLabel,
+                    strings.lastUpdatedLabel(service.lastUpdated),
                     style: TextStyle(fontSize: 11, color: CupertinoColors.white.withValues(alpha: 0.7)),
                   ),
                 ],
@@ -181,11 +186,7 @@ class _OverlayStats extends StatelessWidget {
                 children: [
                   _MiniStat(icon: CupertinoIcons.thermometer, value: '${service.temp.toStringAsFixed(1)}°C', color: AppColors.orange),
                   _MiniStat(icon: CupertinoIcons.drop, value: '${service.humid.toStringAsFixed(0)}%', color: AppColors.blue),
-                  _MiniStat(
-                    icon: CupertinoIcons.leaf_arrow_circlepath,
-                    value: service.needsWater ? 'Dry' : 'Moist',
-                    color: AppColors.teal,
-                  ),
+                  _MiniStat(icon: CupertinoIcons.leaf_arrow_circlepath, value: service.needsWater ? 'Dry' : 'Moist', color: AppColors.teal),
                 ],
               ),
             ],
