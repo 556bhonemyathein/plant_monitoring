@@ -12,6 +12,30 @@ import 'settings_screen.dart';
 /// (floating nav bar အောက်မှာ content တွေ မပျောက်အောင်)။
 const double kNavBarClearance = 96;
 
+/// လက်ရှိဖွင့်ထားတဲ့ tab ကို descendant တွေ သိနိုင်အောင် အောက်ကို ပို့ပေးတယ်။
+///
+/// IndexedStack သုံးထားတာမို့ tab အားလုံး တစ်ပြိုင်တည်း "အသက်ရှင်" နေတယ်။
+/// ESP32-CAM က stream client တစ်ခုတည်းသာ လက်ခံတာမို့ Home နဲ့ Live နှစ်ခုလုံးက
+/// တစ်ပြိုင်တည်း ချိတ်ရင် နောက်တစ်ခုက ပုံမရဘူး — ဒါကြောင့် မမြင်ရတဲ့ tab ရဲ့
+/// stream ကို ဖြုတ်ထားဖို့ ဒီ index ကို သုံးတယ်။
+class ActiveTab extends InheritedWidget {
+  const ActiveTab({super.key, required this.index, required super.child});
+
+  final int index;
+
+  static const int home = 0;
+  static const int live = 1;
+
+  /// [tab] က လက်ရှိမြင်နေရတဲ့ tab ဟုတ်မဟုတ်။
+  static bool isActive(BuildContext context, int tab) {
+    final scope = context.dependOnInheritedWidgetOfExactType<ActiveTab>();
+    return scope == null || scope.index == tab;
+  }
+
+  @override
+  bool updateShouldNotify(ActiveTab oldWidget) => oldWidget.index != index;
+}
+
 /// App ရဲ့ အဓိက shell — bottom navigation bar နဲ့ tab ၄ ခုကို ကိုင်တွယ်တယ်။
 ///
 /// IndexedStack သုံးထားတာမို့ tab ပြောင်းလည်း screen တစ်ခုချင်းရဲ့ state
@@ -41,9 +65,12 @@ class _RootShellState extends State<RootShell> {
       child: Stack(
         children: [
           Positioned.fill(
-            child: IndexedStack(
+            child: ActiveTab(
               index: _index,
-              children: const [HomeScreen(), CameraScreen(), AiScanScreen(), SettingsScreen()],
+              child: IndexedStack(
+                index: _index,
+                children: const [HomeScreen(), CameraScreen(), AiScanScreen(), SettingsScreen()],
+              ),
             ),
           ),
           Positioned(

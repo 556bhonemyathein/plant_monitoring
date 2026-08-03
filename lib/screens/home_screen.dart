@@ -2,9 +2,10 @@ import 'dart:ui' as ui;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_mjpeg/flutter_mjpeg.dart';
 import '../l10n/app_strings.dart';
-import '../models/ai_care_advice.dart';
+import '../services/gemini_service.dart';
 import '../services/plant_service.dart';
 import '../theme/app_colors.dart';
+import '../widgets/rich_answer.dart';
 import 'root_shell.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -19,6 +20,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// build() တိုင်းမှာ အသစ်ယူတယ် — helper method တွေက context မကိုင်ဘဲ သုံးနိုင်အောင်။
   late AppStrings _s = AppLocale.of(context);
+
+  // ── "AI ကို မေးမယ်" ခလုတ်တွေရဲ့ အခြေအနေ ──
+  String? _askTitle; // ဘယ်ခလုတ်ကို နှိပ်ထားလဲ (အဖြေ card ရဲ့ ခေါင်းစဉ်)
+  String? _answer;
+  String? _askError;
+  bool _asking = false;
+  bool _capturing = false;
 
   @override
   void initState() {
@@ -45,6 +53,71 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
+  /// Sensor တန်ဖိုးတွေအပေါ် အခြေခံပြီး AI ကို မေးခွန်းတစ်ခု မေးတယ်။
+  Future<void> _ask({required String title, required String question}) async {
+    setState(() {
+      _askTitle = title;
+      _answer = null;
+      _askError = null;
+      _asking = true;
+      _capturing = false;
+    });
+    try {
+      // API key မရှိရင် GeminiService constructor ကတည်းက exception ပစ်တယ်။
+      final answer = await GeminiService().askAboutSensors(
+        question: question,
+        temperature: _service.temp,
+        humidity: _service.humid,
+        soilMoisture: _service.soilMoisture,
+        soilMoisturePercent: _service.soilMoisturePercent,
+      );
+      if (mounted) setState(() => _answer = answer);
+    } catch (e) {
+      if (mounted) setState(() => _askError = _messageFor(e));
+    } finally {
+      if (mounted) setState(() => _asking = false);
+    }
+  }
+
+  /// ESP32-CAM ကနေ ဓာတ်ပုံတစ်ပုံ ဖမ်းပြီး အဲဒီပုံအပေါ် AI ကို မေးတယ်။
+  Future<void> _askAboutPhoto({required String title, required String question}) async {
+    setState(() {
+      _askTitle = title;
+      _answer = null;
+      _askError = null;
+      _asking = true;
+      _capturing = true;
+    });
+    try {
+      final photo = await _service.captureStill();
+      if (mounted) setState(() => _capturing = false);
+      final answer = await GeminiService().analyzeImageBytes(
+        photo,
+        question: question,
+        temperature: _service.temp,
+        humidity: _service.humid,
+        soilMoisture: _service.soilMoisture,
+      );
+      if (mounted) setState(() => _answer = answer);
+    } catch (e) {
+      if (mounted) setState(() => _askError = _messageFor(e));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _asking = false;
+          _capturing = false;
+        });
+      }
+    }
+  }
+
+  /// Exception တွေကို user ကို ပြလို့ရတဲ့ စာသားအဖြစ် ပြောင်းတယ်။
+  String _messageFor(Object e) => switch (e) {
+    GeminiException() => e.message,
+    PlantCameraException() => _s.captureFailed(e.url),
+    _ => _s.aiAnalysisFailed(e),
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -82,15 +155,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     _buildCameraSection(),
                     const SizedBox(height: 16),
-                    _buildStatusCard(),
-                    const SizedBox(height: 24),
-                    _sectionTitle(CupertinoIcons.thermometer, _s.sensorReadings),
-                    const SizedBox(height: 12),
                     _buildSensorReadings(),
                     const SizedBox(height: 24),
-                    _careGuideHeader(),
+                    _sectionTitle(CupertinoIcons.sparkles, _s.askAiSection, AppColors.purple),
                     const SizedBox(height: 12),
-                    _buildCareGuide(),
+                    _sensorQuestionButtons(),
+                    const SizedBox(height: 20),
+                    _sectionTitle(CupertinoIcons.camera_viewfinder, _s.askAiCameraSection, AppColors.blue),
+                    const SizedBox(height: 12),
+                    _photoQuestionButtons(),
+                    if (_asking || _answer != null || _askError != null) ...[const SizedBox(height: 16), _answerCard()],
                     const SizedBox(height: 24),
                     _primaryButton(
                       onPressed: _service.isLoading ? null : _refresh,
@@ -111,6 +185,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // ── Camera Section ──
   Widget _buildCameraSection() {
+    // ESP32-CAM က stream client တစ်ခုတည်းသာ လက်ခံတယ်။ IndexedStack ကြောင့်
+    // Live tab ကလည်း အသက်ရှင်နေတာမို့ ဒီ preview က Home ကို ဖွင့်ထားချိန်မှသာ
+    // ချိတ်ရမယ် — မဟုတ်ရင် နှစ်ခုလုံး လုနေပြီး တစ်ခုက ပုံမရဘူး။
+    final streaming = ActiveTab.isActive(context, ActiveTab.home);
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(14),
       child: SizedBox(
@@ -121,27 +200,42 @@ class _HomeScreenState extends State<HomeScreen> {
             Positioned.fill(
               child: Container(
                 color: CupertinoColors.black,
-                child: Mjpeg(
-                  key: ValueKey(_service.streamUrl),
-                  isLive: true,
-                  stream: _service.streamUrl,
-                  error: (context, error, stack) {
-                    return Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(CupertinoIcons.exclamationmark_triangle_fill, color: CupertinoColors.white, size: 36),
-                          const SizedBox(height: 8),
-                          Text(
-                            _s.cameraStreamDisconnected,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(color: CupertinoColors.white, fontSize: 14),
-                          ),
-                        ],
+                child: streaming
+                    ? Mjpeg(
+                        key: ValueKey(_service.streamUrl),
+                        isLive: true,
+                        stream: _service.streamUrl,
+                        error: (context, error, stack) {
+                          return Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(CupertinoIcons.exclamationmark_triangle_fill, color: CupertinoColors.white, size: 36),
+                                const SizedBox(height: 8),
+                                Text(
+                                  _s.cameraStreamDisconnected,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(color: CupertinoColors.white, fontSize: 14),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      )
+                    : Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(CupertinoIcons.pause_circle, color: CupertinoColors.white, size: 36),
+                            const SizedBox(height: 8),
+                            Text(
+                              _s.previewPaused,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(color: CupertinoColors.white, fontSize: 13),
+                            ),
+                          ],
+                        ),
                       ),
-                    );
-                  },
-                ),
               ),
             ),
             // Frosted glass LIVE badge
@@ -180,60 +274,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ── Status Card ──
-  Widget _buildStatusCard() {
-    final statusColor = _service.statusColor;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.separator),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(color: statusColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(22)),
-                child: Center(child: Icon(_service.statusIcon, color: statusColor, size: 22)),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _s.currentStatus,
-                      style: const TextStyle(fontSize: 11, letterSpacing: 0.5, fontWeight: FontWeight.w600, color: AppColors.secondaryLabel),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      _s.verdictHeadline(_service.verdict),
-                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: statusColor),
-                    ),
-                  ],
-                ),
-              ),
-              Text(_s.lastUpdatedLabel(_service.lastUpdated), style: const TextStyle(fontSize: 11, color: AppColors.secondaryLabel)),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: AppColors.fill, borderRadius: BorderRadius.circular(10)),
-            child: Text(_s.verdictAdvice(_service.verdict), style: const TextStyle(fontSize: 14, color: AppColors.label, height: 1.35)),
-          ),
-        ],
-      ),
-    );
-  }
-
   // ── Sensor Readings (Temperature / Humidity / Soil Moisture) ──
   Widget _buildSensorReadings() {
     return Row(
@@ -241,18 +281,19 @@ class _HomeScreenState extends State<HomeScreen> {
         _sensorTile(
           icon: CupertinoIcons.thermometer,
           label: _s.temperature,
-          value: _service.temp.toStringAsFixed(2),
+          value: _service.temp.toStringAsFixed(0),
           unit: '°C',
           color: AppColors.orange,
         ),
         const SizedBox(width: 10),
-        _sensorTile(icon: CupertinoIcons.drop, label: _s.humidity, value: _service.humid.toStringAsFixed(2), unit: '%', color: AppColors.blue),
+        _sensorTile(icon: CupertinoIcons.drop, label: _s.humidity, value: _service.humid.toStringAsFixed(0), unit: '%', color: AppColors.blue),
         const SizedBox(width: 10),
+        // Sensor က 0/1 ပဲပေးတာမို့ PlantService မှာ percent အဖြစ် map လုပ်ထားတယ်။
         _sensorTile(
           icon: CupertinoIcons.leaf_arrow_circlepath,
           label: _s.soilMoisture,
-          value: '${_service.soilMoisture}',
-          unit: '',
+          value: '${_service.soilMoisturePercent}',
+          unit: '%',
           color: AppColors.teal,
         ),
       ],
@@ -299,6 +340,8 @@ class _HomeScreenState extends State<HomeScreen> {
             Text(
               label,
               textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 11, color: AppColors.secondaryLabel, height: 1.2),
             ),
           ],
@@ -307,204 +350,107 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ── AI Care Guide ──
-  // Threshold တွေနဲ့ ကိုယ်တိုင်တွက်တဲ့အစား sensor readings ကို Gemini ဆီပို့ပြီး
-  // အကြံပြုချက် ပြန်ယူတယ်။ AI မရလို့ရှိရင် အောက်က threshold guide ကို fallback ပြတယ်။
-  Widget _careGuideHeader() {
-    return Row(
+  // ── AI ကို မေးမယ် (sensor အခြေခံ) ──
+  Widget _sensorQuestionButtons() {
+    return _card(
       children: [
-        const Icon(CupertinoIcons.sparkles, size: 18, color: AppColors.purple),
-        const SizedBox(width: 8),
-        Flexible(
-          child: Text(
-            _s.careGuide,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.label),
+        _askRow(
+          icon: CupertinoIcons.leaf_arrow_circlepath,
+          color: AppColors.teal,
+          title: _s.askSoilTitle,
+          subtitle: _s.askSoilSubtitle,
+          onPressed: () => _ask(
+            title: _s.askSoilTitle,
+            question: 'How is the soil moisture right now, and does the plant need watering?',
           ),
         ),
-        const SizedBox(width: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-          decoration: BoxDecoration(color: AppColors.purple.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(7)),
-          child: Text(
-            _s.aiBadge,
-            style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 0.4, color: AppColors.purple),
+        const _Separator(),
+        _askRow(
+          icon: CupertinoIcons.thermometer,
+          color: AppColors.orange,
+          title: _s.askTempTitle,
+          subtitle: _s.askTempSubtitle,
+          onPressed: () => _ask(
+            title: _s.askTempTitle,
+            question: 'What is the temperature right now, and is it good for the plant?',
           ),
         ),
-        const Spacer(),
-        if (_service.hasData && !_service.aiLoading)
-          CupertinoButton(
-            padding: EdgeInsets.zero,
-            minimumSize: Size.zero,
-            onPressed: _service.refreshAiAdvice,
-            child: const Icon(CupertinoIcons.arrow_2_circlepath, size: 19, color: AppColors.purple),
+        const _Separator(),
+        _askRow(
+          icon: CupertinoIcons.drop,
+          color: AppColors.blue,
+          title: _s.askHumidityTitle,
+          subtitle: _s.askHumiditySubtitle,
+          onPressed: () => _ask(
+            title: _s.askHumidityTitle,
+            question: 'What is the air humidity right now, and is it good for the plant?',
           ),
+        ),
       ],
     );
   }
 
-  Widget _buildCareGuide() {
-    final advice = _service.aiAdvice;
-
-    if (!_service.hasData) {
-      return _noticeCard(
-        icon: CupertinoIcons.antenna_radiowaves_left_right,
-        color: AppColors.secondaryLabel,
-        title: _s.waitingForSensorTitle,
-        message: _s.waitingForSensorMessage,
-      );
-    }
-
-    if (advice == null && _service.aiLoading) {
-      return _noticeCard(
-        icon: CupertinoIcons.sparkles,
-        color: AppColors.purple,
-        title: _s.askingAiTitle,
-        message: _s.askingAiMessage,
-        busy: true,
-      );
-    }
-
-    if (advice == null) {
-      // AI မရရင် အရင်က threshold-based cards တွေနဲ့ ဆက်အလုပ်လုပ်နိုင်တယ်။
-      return Column(
-        children: [
-          _noticeCard(
-            icon: CupertinoIcons.exclamationmark_circle,
-            color: AppColors.orange,
-            title: _s.aiUnavailableTitle,
-            message: _service.aiError ?? _s.aiUnavailableMessage,
-          ),
-          const SizedBox(height: 10),
-          _thresholdGuide(),
-        ],
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  // ── AI ကို မေးမယ် (ကင်မရာ ဓာတ်ပုံ အခြေခံ) ──
+  Widget _photoQuestionButtons() {
+    return _card(
       children: [
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.card,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.purple.withValues(alpha: 0.25)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      advice.headline,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.label),
-                    ),
-                  ),
-                  if (_service.aiLoading) const CupertinoActivityIndicator(radius: 8),
-                ],
-              ),
-              if (advice.summary.isNotEmpty) ...[
-                const SizedBox(height: 6),
-                Text(advice.summary, style: const TextStyle(fontSize: 13.5, color: AppColors.secondaryLabel, height: 1.4)),
-              ],
-            ],
+        _askRow(
+          icon: CupertinoIcons.sparkles,
+          color: AppColors.purple,
+          title: _s.askDiseaseTitle,
+          subtitle: _s.askDiseaseSubtitle,
+          onPressed: () => _askAboutPhoto(
+            title: _s.askDiseaseTitle,
+            question: 'What disease, pest or deficiency does this plant have? Name the most likely one and the signs you can see.',
           ),
         ),
-        for (final action in advice.actions) ...[const SizedBox(height: 10), _aiActionCard(action)],
+        const _Separator(),
+        _askRow(
+          icon: CupertinoIcons.drop_triangle,
+          color: AppColors.green,
+          title: _s.askSprayTitle,
+          subtitle: _s.askSpraySubtitle,
+          onPressed: () => _askAboutPhoto(
+            title: _s.askSprayTitle,
+            question: 'Based on this photo, what should I spray or apply to treat the plant? Give the treatment type, how to mix it and how often.',
+          ),
+        ),
       ],
     );
   }
 
-  Widget _aiActionCard(CareAction action) {
-    final (Color color, IconData icon, String badge) = switch (action.urgency) {
-      CareUrgency.now => (AppColors.red, CupertinoIcons.exclamationmark_triangle_fill, _s.urgencyNow),
-      CareUrgency.soon => (AppColors.orange, CupertinoIcons.clock_fill, _s.urgencySoon),
-      CareUrgency.ok => (AppColors.green, CupertinoIcons.checkmark_alt, _s.urgencyOk),
-    };
-
+  Widget _card({required List<Widget> children}) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: action.urgency == CareUrgency.ok ? AppColors.separator : color.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
-            child: Icon(icon, color: color, size: 21),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  action.title,
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.label),
-                ),
-                if (action.detail.isNotEmpty) ...[
-                  const SizedBox(height: 3),
-                  Text(action.detail, style: const TextStyle(fontSize: 13, color: AppColors.secondaryLabel, height: 1.35)),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(14)),
-            child: Text(
-              badge,
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// AI မရတဲ့အခါ သုံးမယ့် threshold-based guide။
-  Widget _thresholdGuide() {
-    return _careCard(
-      icon: CupertinoIcons.drop,
-      title: _s.water,
-      needs: _service.needsWater,
-      okText: _s.soilMoistOk,
-      needText: _s.soilDryAction,
-      accent: AppColors.blue,
-    );
-    // NPK နဲ့ Sunlight fields တွေကို ESP32 က data မပို့သေးတာမို့ ခဏပိတ်ထားတယ်။
-    // sensor တွေ ချိတ်ပြီးရင် _careCard တွေ ထပ်ထည့်လိုက်ရုံပါ (_npkBreakdown ကို extra အဖြစ်သုံး)။
-  }
-
-  Widget _noticeCard({required IconData icon, required Color color, required String title, required String message, bool busy = false}) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.separator),
       ),
+      child: Column(children: children),
+    );
+  }
+
+  Widget _askRow({
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String subtitle,
+    required VoidCallback onPressed,
+  }) {
+    return CupertinoButton(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      borderRadius: BorderRadius.zero,
+      minimumSize: Size.zero,
+      onPressed: _asking ? null : onPressed,
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
-            child: busy ? const Center(child: CupertinoActivityIndicator(radius: 9)) : Icon(icon, color: color, size: 21),
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(11)),
+            child: Icon(icon, size: 19, color: color),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -513,137 +459,75 @@ class _HomeScreenState extends State<HomeScreen> {
                   title,
                   style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.label),
                 ),
-                const SizedBox(height: 3),
-                Text(message, style: const TextStyle(fontSize: 13, color: AppColors.secondaryLabel, height: 1.35)),
+                const SizedBox(height: 2),
+                Text(subtitle, style: const TextStyle(fontSize: 12.5, color: AppColors.secondaryLabel, height: 1.3)),
               ],
             ),
           ),
+          const SizedBox(width: 8),
+          const Icon(CupertinoIcons.chevron_right, size: 15, color: AppColors.secondaryLabel),
         ],
       ),
     );
   }
 
-  // ── Care Card ──
-  Widget _careCard({
-    required IconData icon,
-    required String title,
-    required bool needs,
-    required String okText,
-    required String needText,
-    required Color accent,
-    Widget? extra,
-  }) {
-    final Color color = needs ? accent : AppColors.green;
+  // ── AI ရဲ့ အဖြေ ──
+  Widget _answerCard() {
+    final busy = _asking;
+    final error = _askError;
+    final accent = error != null ? AppColors.orange : AppColors.purple;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: needs ? accent.withValues(alpha: 0.3) : AppColors.separator),
+        border: Border.all(color: accent.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
-                child: Center(child: Icon(icon, color: color, size: 22)),
-              ),
-              const SizedBox(width: 14),
+              Icon(error != null ? CupertinoIcons.exclamationmark_circle : CupertinoIcons.sparkles, size: 17, color: accent),
+              const SizedBox(width: 7),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.label),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(needs ? needText : okText, style: const TextStyle(fontSize: 13, color: AppColors.secondaryLabel, height: 1.3)),
-                  ],
+                child: Text(
+                  _askTitle ?? _s.aiAnswerTitle,
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.label),
                 ),
               ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(14)),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(needs ? CupertinoIcons.exclamationmark_triangle : CupertinoIcons.checkmark_alt, size: 13, color: color),
-                    const SizedBox(width: 3),
-                    Text(
-                      needs ? _s.actionBadge : _s.okBadge,
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color),
-                    ),
-                  ],
-                ),
-              ),
+              if (busy) const CupertinoActivityIndicator(radius: 9),
             ],
           ),
-          if (extra != null) ...[const SizedBox(height: 14), extra],
+          const SizedBox(height: 12),
+          if (busy)
+            Text(
+              _capturing ? _s.capturingPhoto : _s.aiThinking,
+              style: const TextStyle(fontSize: 13.5, color: AppColors.secondaryLabel, height: 1.4),
+            )
+          else if (error != null)
+            Text(error, style: const TextStyle(fontSize: 13.5, color: AppColors.secondaryLabel, height: 1.4))
+          else if (_answer != null)
+            RichAnswer(text: _answer!),
         ],
       ),
     );
   }
 
-  // ── NPK Breakdown ──
-  // ignore: unused_element  (NPK card ပြန်ဖွင့်ရင် ပြန်သုံးမယ့်ကုဒ်)
-  Widget _npkBreakdown() {
-    return Row(
-      children: [
-        _npkStat('N', _service.nitrogen, PlantService.nMin),
-        const SizedBox(width: 8),
-        _npkStat('P', _service.phosphorus, PlantService.pMin),
-        const SizedBox(width: 8),
-        _npkStat('K', _service.potassium, PlantService.kMin),
-      ],
-    );
-  }
-
-  Widget _npkStat(String label, int value, int min) {
-    final bool low = value < min;
-    final Color c = low ? AppColors.orange : AppColors.green;
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(color: c.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(10)),
-        child: Column(
-          children: [
-            Text(
-              label,
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: c),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              '$value',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.label),
-            ),
-            const Text('mg/kg', style: TextStyle(fontSize: 10, color: AppColors.secondaryLabel)),
-            const SizedBox(height: 2),
-            Text(
-              low ? _s.lowBadge : _s.okBadge,
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: c),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   // ── Section Title ──
-  Widget _sectionTitle(IconData icon, String title) {
+  Widget _sectionTitle(IconData icon, String title, Color color) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: AppColors.green),
+        Icon(icon, size: 18, color: color),
         const SizedBox(width: 8),
-        Text(
-          title,
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.label),
+        Flexible(
+          child: Text(
+            title,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.label),
+          ),
         ),
       ],
     );
@@ -671,13 +555,26 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             if (loading) const CupertinoActivityIndicator(color: CupertinoColors.white) else Icon(icon, size: 18, color: CupertinoColors.white),
             const SizedBox(width: 8),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: CupertinoColors.white),
+            Flexible(
+              child: Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: CupertinoColors.white),
+              ),
             ),
           ],
         ),
       ),
     );
+  }
+}
+
+/// Cupertino မှာ Divider မရှိတာမို့ hairline separator ကို ကိုယ်တိုင်လုပ်ထားတယ်။
+class _Separator extends StatelessWidget {
+  const _Separator();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(height: 1, margin: const EdgeInsets.only(left: 64), color: AppColors.separator);
   }
 }

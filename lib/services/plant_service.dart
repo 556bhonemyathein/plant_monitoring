@@ -1,5 +1,5 @@
-import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
@@ -18,6 +18,14 @@ enum PlantVerdict { unknown, dry, pestRisk, tooHot, good }
 /// ချိတ်ဆက်မှု အမှား အမျိုးအစား (စာသားက UI ဘက်မှာ ဘာသာပြန်ထားတယ်)။
 enum ConnectionError { unreachable, badStatus }
 
+/// ESP32-CAM ကနေ ဓာတ်ပုံ မဖမ်းနိုင်တဲ့အခါ ပစ်တဲ့ error။
+class PlantCameraException implements Exception {
+  const PlantCameraException(this.url, {this.statusCode});
+
+  final String url;
+  final int? statusCode;
+}
+
 /// ESP32 sensor data + verdict တွေကို တစ်နေရာတည်းမှာ စုထားပြီး
 /// tab အားလုံး (Home / Camera / AI / Settings) မျှသုံးနိုင်တဲ့ store။
 ///
@@ -34,6 +42,9 @@ class PlantService extends ChangeNotifier {
 
   String get dataUrl => 'http://$host/data';
   String get streamUrl => 'http://$host:$streamPort/stream';
+
+  /// ESP32-CAM ရဲ့ still-image endpoint — AI ကို ပုံပို့တဲ့အခါ သုံးတယ်။
+  String get captureUrl => 'http://$host:$streamPort/capture';
 
   // ── Care thresholds ──
   static const int nMin = 50;
@@ -56,6 +67,14 @@ class PlantService extends ChangeNotifier {
   ConnectionError? lastError;
   int? lastErrorStatusCode;
   DateTime? lastUpdated;
+
+  // ── Soil moisture as a percentage ──
+  // Sensor က 0 / 1 ပဲ ပြန်ပေးတာမို့ UI မှာ percent အဖြစ် ပြနိုင်အောင် map လုပ်ထားတယ်။
+  // တန်ဖိုးတွေကို ဒီနှစ်ခုပဲ ပြင်ရုံနဲ့ ရတယ်။
+  static const int soilPercentWhenWet = 0;
+  static const int soilPercentWhenDry = 40;
+
+  int get soilMoisturePercent => soilMoisture == 1 ? soilPercentWhenDry : soilPercentWhenWet;
 
   // ── Derived verdicts ──
   bool get needsWater => soilMoisture == 1;
@@ -87,6 +106,9 @@ class PlantService extends ChangeNotifier {
   bool aiLoading = false;
   String? aiError;
 
+  /// Home screen က "AI ကို မေးမယ်" ခလုတ်တွေနဲ့ အစားထိုးလိုက်တာမို့ ယခု
+  /// အလိုအလျောက် မခေါ်တော့ဘူး။ Care Guide ကို ပြန်ဖွင့်ချင်ရင် refresh() ထဲမှာ
+  /// ဒီ method ကို ပြန်ခေါ်ရုံပါပဲ (quota သက်သာအောင် ခဏဖြုတ်ထားတာ)။
   /// Sensor data အသစ်ရပြီးတိုင်း Gemini ဆီပို့ပြီး care guide ပြန်ယူတယ်။
   /// API key မရှိရင် သို့မဟုတ် network ကျရင် [aiError] တင်ပြီး
   /// Home screen က threshold-based guide ကို fallback အဖြစ် ပြပါတယ်။
@@ -153,8 +175,21 @@ class PlantService extends ChangeNotifier {
       notifyListeners();
     }
 
-    // AI ကို await မလုပ်ဘဲ နောက်ကွယ်မှာ ဆက်ခေါ်တယ် — sensor UI က မစောင့်ရအောင်။
-    if (hasData) unawaited(refreshAiAdvice());
+  }
+
+  /// ESP32-CAM ကနေ ဓာတ်ပုံတစ်ပုံ ဖမ်းယူတယ် (AI ကို ပို့ဖို့)။
+  /// မရရင် ဖတ်လို့ရတဲ့ message နဲ့ Exception ပစ်တယ်။
+  Future<Uint8List> captureStill() async {
+    final http.Response response;
+    try {
+      response = await http.get(Uri.parse(captureUrl)).timeout(const Duration(seconds: 15));
+    } catch (_) {
+      throw PlantCameraException(captureUrl);
+    }
+    if (response.statusCode != 200 || response.bodyBytes.isEmpty) {
+      throw PlantCameraException(captureUrl, statusCode: response.statusCode);
+    }
+    return response.bodyBytes;
   }
 
   void _recomputeVerdict() {

@@ -87,8 +87,28 @@ abstract class AppStrings {
   String get soilMoisture;
   String get careGuide;
   String get aiBadge;
+
+  // ── Home ရဲ့ "AI ကို မေးမယ်" ခလုတ်များ ──
+  String get askAiSection;
+  String get askAiCameraSection;
+  String get askSoilTitle;
+  String get askSoilSubtitle;
+  String get askTempTitle;
+  String get askTempSubtitle;
+  String get askHumidityTitle;
+  String get askHumiditySubtitle;
+  String get askDiseaseTitle;
+  String get askDiseaseSubtitle;
+  String get askSprayTitle;
+  String get askSpraySubtitle;
+  String get aiThinking;
+  String get capturingPhoto;
+  String captureFailed(String url);
+  String get aiAnswerTitle;
+
   String get checkForUpdates;
   String get cameraStreamDisconnected;
+  String get previewPaused;
   String get waitingForSensorTitle;
   String get waitingForSensorMessage;
   String get askingAiTitle;
@@ -202,10 +222,45 @@ class _EnStrings extends AppStrings {
   String get careGuide => 'Care Guide';
   @override
   String get aiBadge => 'AI';
+
+  @override
+  String get askAiSection => 'Ask the AI';
+  @override
+  String get askAiCameraSection => 'Ask about the camera photo';
+  @override
+  String get askSoilTitle => 'Soil';
+  @override
+  String get askSoilSubtitle => 'How is the soil moisture right now?';
+  @override
+  String get askTempTitle => 'Temperature';
+  @override
+  String get askTempSubtitle => 'What is the temperature right now?';
+  @override
+  String get askHumidityTitle => 'Humidity';
+  @override
+  String get askHumiditySubtitle => 'What is the humidity right now?';
+  @override
+  String get askDiseaseTitle => 'Diagnose the plant';
+  @override
+  String get askDiseaseSubtitle => 'What disease does this plant have?';
+  @override
+  String get askSprayTitle => 'What should I spray?';
+  @override
+  String get askSpraySubtitle => 'Which treatment should I use?';
+  @override
+  String get aiThinking => 'The AI is thinking…';
+  @override
+  String get capturingPhoto => 'Taking a photo from the camera…';
+  @override
+  String captureFailed(String url) => 'Could not take a photo from the camera ($url). Check that the ESP32-CAM is on and reachable.';
+  @override
+  String get aiAnswerTitle => 'AI answer';
   @override
   String get checkForUpdates => 'Check for updates';
   @override
   String get cameraStreamDisconnected => 'Camera Stream Disconnected';
+  @override
+  String get previewPaused => 'Preview paused — open the Live tab to watch';
   @override
   String get waitingForSensorTitle => 'Waiting for sensor data';
   @override
@@ -404,10 +459,45 @@ class _MyStrings extends AppStrings {
   String get careGuide => 'ပြုစုနည်း လမ်းညွှန်';
   @override
   String get aiBadge => 'AI';
+
+  @override
+  String get askAiSection => 'AI ကို မေးမယ်';
+  @override
+  String get askAiCameraSection => 'ကင်မရာ ဓာတ်ပုံအတွက် AI ကို မေးမယ်';
+  @override
+  String get askSoilTitle => 'မြေဆီ';
+  @override
+  String get askSoilSubtitle => 'အခု မြေဆီ အခြေအနေ ဘယ်လိုရှိလဲ?';
+  @override
+  String get askTempTitle => 'အပူချိန်';
+  @override
+  String get askTempSubtitle => 'အခု အပူချိန် ဘယ်လောက်ရှိလဲ?';
+  @override
+  String get askHumidityTitle => 'စိုထိုင်းဆ';
+  @override
+  String get askHumiditySubtitle => 'အခု စိုထိုင်းဆ ဘယ်လောက်ရှိလဲ?';
+  @override
+  String get askDiseaseTitle => 'အပင်ကို စစ်ဆေးမယ်';
+  @override
+  String get askDiseaseSubtitle => 'ဒီအပင် ဘာရောဂါ ဖြစ်နေလဲ?';
+  @override
+  String get askSprayTitle => 'ဘာဆေး ဖျန်းရမလဲ?';
+  @override
+  String get askSpraySubtitle => 'ဘယ်လို ကုသမှု လုပ်သင့်လဲ?';
+  @override
+  String get aiThinking => 'AI က စဉ်းစားနေသည်…';
+  @override
+  String get capturingPhoto => 'ကင်မရာကနေ ဓာတ်ပုံ ရိုက်နေသည်…';
+  @override
+  String captureFailed(String url) => 'ကင်မရာကနေ ဓာတ်ပုံ မရိုက်နိုင်ပါ ($url)။ ESP32-CAM ဖွင့်ထားခြင်း ရှိမရှိ စစ်ဆေးပါ။';
+  @override
+  String get aiAnswerTitle => 'AI ရဲ့ အဖြေ';
   @override
   String get checkForUpdates => 'အချက်အလက် အသစ်ရယူရန်';
   @override
   String get cameraStreamDisconnected => 'ကင်မရာ ချိတ်ဆက်မှု ပြတ်တောက်နေသည်';
+  @override
+  String get previewPaused => 'ရပ်ထားသည် — ကြည့်ရန် တိုက်ရိုက် tab ကို ဖွင့်ပါ';
   @override
   String get waitingForSensorTitle => 'Sensor data ကို စောင့်နေသည်';
   @override
