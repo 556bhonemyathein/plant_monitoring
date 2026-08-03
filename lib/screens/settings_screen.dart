@@ -286,25 +286,32 @@ class _LanguagePicker extends StatelessWidget {
           ),
           const SizedBox(width: 11),
           Expanded(
-            child: SizedBox(
-              height: 32,
-              child: CupertinoSlidingSegmentedControl<AppLanguage>(
-                groupValue: current,
-                onValueChanged: (value) {
-                  if (value != null) LocaleController.instance.setLanguage(value);
-                },
-                children: {
-                  for (final language in AppLanguage.values)
-                    language: Text(
+            // အမြင့်ကို ပုံသေမထားပါ — မြန်မာစာလုံးတွေက အင်္ဂလိပ်ထက် မြင့်တာမို့
+            // SizedBox(height: 32) ထားရင် segmented control က overflow ဖြစ်တယ်။
+            child: CupertinoSlidingSegmentedControl<AppLanguage>(
+              groupValue: current,
+              padding: const EdgeInsets.all(3),
+              onValueChanged: (value) {
+                if (value != null) LocaleController.instance.setLanguage(value);
+              },
+              children: {
+                for (final language in AppLanguage.values)
+                  language: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Text(
                       language.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 14,
+                        height: 1.3,
                         fontWeight: language == current ? FontWeight.w600 : FontWeight.w400,
                         color: AppColors.label,
                       ),
                     ),
-                },
-              ),
+                  ),
+              },
             ),
           ),
         ],

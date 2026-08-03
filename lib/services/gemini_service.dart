@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -82,6 +83,31 @@ class GeminiService {
       {'text': prompt},
     ], jsonOutput: true);
     return AiCareAdvice.parse(text);
+  }
+
+  /// Home screen က ခလုတ်တစ်ခုချင်းအတွက် — sensor တန်ဖိုးတွေ ပေးပြီး
+  /// မေးခွန်းတစ်ခုကို အဖြေတိုတို ပြန်ယူတယ်။
+  Future<String> askAboutSensors({
+    required String question,
+    required double temperature,
+    required double humidity,
+    required int soilMoisture,
+    required int soilMoisturePercent,
+  }) {
+    final prompt =
+        'You are an agronomist assistant inside a plant monitoring app. '
+        'These are the current live readings from an ESP32 sensor node:\n'
+        '- Air temperature: ${temperature.toStringAsFixed(1)} °C\n'
+        '- Air humidity: ${humidity.toStringAsFixed(1)} %\n'
+        '- Soil moisture: $soilMoisturePercent % (raw sensor value $soilMoisture, where 1 means DRY)\n\n'
+        'The user asks: "$question"\n\n'
+        'Answer using ONLY these readings — do not invent values. '
+        'Keep it under 90 words: say what the reading means for the plant, then what to do. '
+        'Use short bullet points where it helps. $_languageInstruction';
+
+    return _generate([
+      {'text': prompt},
+    ]);
   }
 
   /// Gemini generateContent ကို ခေါ်ပြီး ပထမ text part ကို ပြန်ပေးတယ်။
@@ -182,6 +208,39 @@ class GeminiService {
     if (imageBytes.length > 18 * 1024 * 1024) {
       throw const GeminiException('That photo is too large to send. Try a smaller image.');
     }
+    return analyzeImageBytes(
+      imageBytes,
+      mimeType: _mimeFor(imageFile.path),
+      temperature: temperature,
+      humidity: humidity,
+      soilMoisture: soilMoisture,
+      nitrogen: nitrogen,
+      phosphorus: phosphorus,
+      potassium: potassium,
+      light: light,
+    );
+  }
+
+  /// ဓာတ်ပုံ bytes (ESP32-CAM ကနေ ဖမ်းလာတာ ဖြစ်နိုင်တယ်) ကို sensor context နဲ့အတူ ပို့တယ်။
+  /// [question] ပေးရင် အဲဒီမေးခွန်းကိုပဲ ဖြေခိုင်းတယ် — မပေးရင် အပြည့်အစုံ ခွဲခြမ်းစိတ်ဖြာချက် ရတယ်။
+  Future<String> analyzeImageBytes(
+    Uint8List imageBytes, {
+    String mimeType = 'image/jpeg',
+    String? question,
+    double temperature = 0,
+    double humidity = 0,
+    int soilMoisture = 0,
+    int nitrogen = 0,
+    int phosphorus = 0,
+    int potassium = 0,
+    double light = 0,
+  }) async {
+    if (imageBytes.isEmpty) {
+      throw const GeminiException('That photo is empty or could not be read. Try taking or picking it again.');
+    }
+    if (imageBytes.length > 18 * 1024 * 1024) {
+      throw const GeminiException('That photo is too large to send. Try a smaller image.');
+    }
     final base64Image = base64Encode(imageBytes);
 
     // Build a rich context string from live sensor data
@@ -196,21 +255,28 @@ class GeminiService {
 
     // Error တွေကို string အဖြစ် return မလုပ်တော့ဘဲ GeminiException ပစ်တယ် —
     // ဒါမှ UI က အဖြေနဲ့ error ကို ခွဲပြနိုင်မယ်။
+    final task = question == null
+        ? 'Analyze this plant image in detail. Provide the following:\n'
+              '1. **Plant Species**: Identify the plant if possible.\n'
+              '2. **Health Condition**: Describe the overall health of the plant.\n'
+              '3. **Issues Detected**: Any diseases, pests, nutrient deficiencies, or abnormalities.\n'
+              '4. **Care Recommendations**: Watering, sunlight, soil, and other care tips.\n\n'
+        : 'Look at this photo of the plant and answer the question below.\n'
+              'Question: "$question"\n'
+              'Keep the answer under 120 words, concrete and practical. '
+              'If the photo is too unclear to judge, say so plainly.\n\n';
+
     return _generate([
       {
         'text':
-            'Analyze this plant image in detail. Provide the following:\n'
-            '1. **Plant Species**: Identify the plant if possible.\n'
-            '2. **Health Condition**: Describe the overall health of the plant.\n'
-            '3. **Issues Detected**: Any diseases, pests, nutrient deficiencies, or abnormalities.\n'
-            '4. **Care Recommendations**: Watering, sunlight, soil, and other care tips.\n\n'
+            '$task'
             '$sensorContext\n'
             'Consider the above sensor data in your analysis and recommendations. '
             '$_languageInstruction',
       },
       {
         // အရင်က image/jpeg လို့ အမြဲ ပို့နေတာမို့ PNG/WebP/HEIC ဖိုင်ဆိုရင် API က 400 ပြန်တယ်။
-        'inline_data': {'mime_type': _mimeFor(imageFile.path), 'data': base64Image},
+        'inline_data': {'mime_type': mimeType, 'data': base64Image},
       },
     ]);
   }

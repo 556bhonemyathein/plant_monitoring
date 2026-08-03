@@ -27,6 +27,9 @@ class _CameraScreenState extends State<CameraScreen> {
   Widget build(BuildContext context) {
     final topInset = MediaQuery.viewPaddingOf(context).top;
     final s = AppLocale.of(context);
+    // Home tab ကို ပြန်သွားရင် ဒီက connection ကို လွှတ်ပေးရမယ် —
+    // ESP32-CAM က stream client တစ်ခုတည်းသာ လက်ခံလို့။
+    final streaming = ActiveTab.isActive(context, ActiveTab.live);
 
     return ListenableBuilder(
       listenable: _service,
@@ -36,12 +39,13 @@ class _CameraScreenState extends State<CameraScreen> {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              Mjpeg(
-                key: ValueKey('${_service.streamUrl}#$_streamAttempt'),
-                isLive: true,
-                stream: _service.streamUrl,
-                error: (context, error, stack) => _StreamError(host: _service.host, onRetry: () => setState(() => _streamAttempt++)),
-              ),
+              if (streaming)
+                Mjpeg(
+                  key: ValueKey('${_service.streamUrl}#$_streamAttempt'),
+                  isLive: true,
+                  stream: _service.streamUrl,
+                  error: (context, error, stack) => _StreamError(host: _service.host, strings: s, onRetry: () => setState(() => _streamAttempt++)),
+                ),
               // အပေါ်/အောက် နှစ်ဖက်လုံးမှာ overlay စာလုံးတွေ ဖတ်ရလွယ်အောင် gradient scrim
               const Positioned.fill(child: IgnorePointer(child: _Scrim())),
               Positioned(
@@ -186,7 +190,11 @@ class _OverlayStats extends StatelessWidget {
                 children: [
                   _MiniStat(icon: CupertinoIcons.thermometer, value: '${service.temp.toStringAsFixed(1)}°C', color: AppColors.orange),
                   _MiniStat(icon: CupertinoIcons.drop, value: '${service.humid.toStringAsFixed(0)}%', color: AppColors.blue),
-                  _MiniStat(icon: CupertinoIcons.leaf_arrow_circlepath, value: service.needsWater ? 'Dry' : 'Moist', color: AppColors.teal),
+                  _MiniStat(
+                    icon: CupertinoIcons.leaf_arrow_circlepath,
+                    value: service.needsWater ? strings.soilDryShort : strings.soilMoistShort,
+                    color: AppColors.teal,
+                  ),
                 ],
               ),
             ],
@@ -251,9 +259,10 @@ class _GlassPill extends StatelessWidget {
 }
 
 class _StreamError extends StatelessWidget {
-  const _StreamError({required this.host, required this.onRetry});
+  const _StreamError({required this.host, required this.strings, required this.onRetry});
 
   final String host;
+  final AppStrings strings;
   final VoidCallback onRetry;
 
   @override
@@ -266,13 +275,14 @@ class _StreamError extends StatelessWidget {
           children: [
             const Icon(CupertinoIcons.videocam_circle, color: CupertinoColors.white, size: 52),
             const SizedBox(height: 12),
-            const Text(
-              'Camera stream disconnected',
-              style: TextStyle(color: CupertinoColors.white, fontSize: 16, fontWeight: FontWeight.w600),
+            Text(
+              strings.streamDisconnectedTitle,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: CupertinoColors.white, fontSize: 16, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 6),
             Text(
-              'No video from $host. Check that the ESP32-CAM is powered on and on the same network.',
+              strings.streamDisconnectedMessage(host),
               textAlign: TextAlign.center,
               style: TextStyle(color: CupertinoColors.white.withValues(alpha: 0.7), fontSize: 13, height: 1.35),
             ),
@@ -282,7 +292,10 @@ class _StreamError extends StatelessWidget {
               borderRadius: BorderRadius.circular(14),
               padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
               onPressed: onRetry,
-              child: const Text('Try again', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+              child: Text(
+                strings.tryAgain,
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: CupertinoColors.white),
+              ),
             ),
           ],
         ),
