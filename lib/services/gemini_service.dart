@@ -55,7 +55,7 @@ class GeminiService {
     final context = StringBuffer()
       ..writeln('- Air temperature: ${temperature.toStringAsFixed(1)} °C')
       ..writeln('- Air humidity: ${humidity.toStringAsFixed(1)} %')
-      ..writeln('- Soil moisture sensor: ${soilMoisture == 1 ? "DRY" : "MOIST"}');
+      ..writeln('- Soil moisture sensor: ${soilMoisture == 0 ? "DRY" : "MOIST"}');
     if (hasNpk) {
       context
         ..writeln('- Nitrogen: $nitrogen mg/kg')
@@ -83,31 +83,6 @@ class GeminiService {
       {'text': prompt},
     ], jsonOutput: true);
     return AiCareAdvice.parse(text);
-  }
-
-  /// Home screen က ခလုတ်တစ်ခုချင်းအတွက် — sensor တန်ဖိုးတွေ ပေးပြီး
-  /// မေးခွန်းတစ်ခုကို အဖြေတိုတို ပြန်ယူတယ်။
-  Future<String> askAboutSensors({
-    required String question,
-    required double temperature,
-    required double humidity,
-    required int soilMoisture,
-    required int soilMoisturePercent,
-  }) {
-    final prompt =
-        'You are an agronomist assistant inside a plant monitoring app. '
-        'These are the current live readings from an ESP32 sensor node:\n'
-        '- Air temperature: ${temperature.toStringAsFixed(1)} °C\n'
-        '- Air humidity: ${humidity.toStringAsFixed(1)} %\n'
-        '- Soil moisture: $soilMoisturePercent % (raw sensor value $soilMoisture, where 1 means DRY)\n\n'
-        'The user asks: "$question"\n\n'
-        'Answer using ONLY these readings — do not invent values. '
-        'Keep it under 90 words: say what the reading means for the plant, then what to do. '
-        'Use short bullet points where it helps. $_languageInstruction';
-
-    return _generate([
-      {'text': prompt},
-    ]);
   }
 
   /// Gemini generateContent ကို ခေါ်ပြီး ပထမ text part ကို ပြန်ပေးတယ်။
@@ -247,7 +222,7 @@ class GeminiService {
     final sensorContext = StringBuffer('Current sensor readings:\n');
     sensorContext.writeln('- Temperature: ${temperature.toStringAsFixed(1)}°C');
     sensorContext.writeln('- Humidity: ${humidity.toStringAsFixed(1)}%');
-    sensorContext.writeln('- Soil: ${soilMoisture == 0 ? "Moist" : "Dry"}');
+    sensorContext.writeln('- Soil: ${soilMoisture == 0 ? "Dry" : "Moist"}');
     sensorContext.writeln('- Nitrogen: $nitrogen mg/kg');
     sensorContext.writeln('- Phosphorus: $phosphorus mg/kg');
     sensorContext.writeln('- Potassium: $potassium mg/kg');

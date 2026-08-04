@@ -88,15 +88,17 @@ abstract class AppStrings {
   String get careGuide;
   String get aiBadge;
 
+  // ── Home ရဲ့ sensor အခြေအနေ (AI မလို — app ကိုယ်တိုင် တွက်တာ) ──
+  String get conditionSection;
+  String tempConditionLabel(TempCondition condition);
+  String tempConditionAdvice(TempCondition condition);
+  String humidityConditionLabel(HumidityCondition condition);
+  String humidityConditionAdvice(HumidityCondition condition);
+  String soilConditionLabel(SoilCondition condition);
+  String soilConditionAdvice(SoilCondition condition);
+
   // ── Home ရဲ့ "AI ကို မေးမယ်" ခလုတ်များ ──
-  String get askAiSection;
   String get askAiCameraSection;
-  String get askSoilTitle;
-  String get askSoilSubtitle;
-  String get askTempTitle;
-  String get askTempSubtitle;
-  String get askHumidityTitle;
-  String get askHumiditySubtitle;
   String get askDiseaseTitle;
   String get askDiseaseSubtitle;
   String get askSprayTitle;
@@ -224,21 +226,54 @@ class _EnStrings extends AppStrings {
   String get aiBadge => 'AI';
 
   @override
-  String get askAiSection => 'Ask the AI';
+  String get conditionSection => 'Sensor condition';
+
+  @override
+  String tempConditionLabel(TempCondition condition) => switch (condition) {
+    TempCondition.coldStress => 'Cold stress (below 15°C)',
+    TempCondition.low => 'Low temperature (15–20°C)',
+    TempCondition.optimal => 'Optimal (20–32°C)',
+    TempCondition.warm => 'Warm (32–35°C)',
+    TempCondition.heatStress => 'Heat stress (above 35°C)',
+  };
+
+  @override
+  String tempConditionAdvice(TempCondition condition) => switch (condition) {
+    TempCondition.coldStress => 'Growth stops and flowers may not set fruit. Raise the water level to keep the roots warm.',
+    TempCondition.low => 'Growth slows down and the roots take up fewer nutrients. Keep watching it.',
+    TempCondition.optimal => 'Best range for growth, strength and fruit set. Keep things as they are.',
+    TempCondition.warm => 'The plant drinks more water and loses it faster through the leaves. Water more often.',
+    TempCondition.heatStress => 'Heat can make the flowers sterile and dry the plant out. Move it to shade and water it now.',
+  };
+
+  @override
+  String humidityConditionLabel(HumidityCondition condition) => switch (condition) {
+    HumidityCondition.dry => 'Dry air (below 50%)',
+    HumidityCondition.normal => 'Normal (50–80%)',
+    HumidityCondition.high => 'Too humid (above 80%)',
+  };
+
+  @override
+  String humidityConditionAdvice(HumidityCondition condition) => switch (condition) {
+    HumidityCondition.dry => 'The air is dry, so the plant may need water.',
+    HumidityCondition.normal => 'Comfortable air humidity for the plant.',
+    HumidityCondition.high => 'Watch out for fungal disease — improve the air flow around the plant.',
+  };
+
+  @override
+  String soilConditionLabel(SoilCondition condition) => switch (condition) {
+    SoilCondition.dry => 'Dry (below 50%)',
+    SoilCondition.wet => 'Wet (above 60%)',
+  };
+
+  @override
+  String soilConditionAdvice(SoilCondition condition) => switch (condition) {
+    SoilCondition.dry => 'The plant is thirsty — water it now.',
+    SoilCondition.wet => 'The plant has enough water.',
+  };
+
   @override
   String get askAiCameraSection => 'Ask about the camera photo';
-  @override
-  String get askSoilTitle => 'Soil';
-  @override
-  String get askSoilSubtitle => 'How is the soil moisture right now?';
-  @override
-  String get askTempTitle => 'Temperature';
-  @override
-  String get askTempSubtitle => 'What is the temperature right now?';
-  @override
-  String get askHumidityTitle => 'Humidity';
-  @override
-  String get askHumiditySubtitle => 'What is the humidity right now?';
   @override
   String get askDiseaseTitle => 'Diagnose the plant';
   @override
@@ -392,6 +427,7 @@ class _EnStrings extends AppStrings {
     PlantVerdict.dry => 'Soil is dry',
     PlantVerdict.pestRisk => 'High risk of pests/fungus',
     PlantVerdict.tooHot => 'Temperature is too high',
+    PlantVerdict.tooCold => 'Temperature is too low',
     PlantVerdict.good => 'Plant health is good',
   };
 
@@ -401,6 +437,7 @@ class _EnStrings extends AppStrings {
     PlantVerdict.dry => 'Action needed: Water the plant as soon as possible.',
     PlantVerdict.pestRisk => 'Action needed: Improve air circulation and apply pesticide preventively.',
     PlantVerdict.tooHot => 'Action needed: Move the plant to shade away from direct sunlight.',
+    PlantVerdict.tooCold => 'Action needed: Keep the plant warm and raise the water level to protect the roots.',
     PlantVerdict.good => 'Action needed: None. Keep maintaining it as usual.',
   };
 
@@ -461,21 +498,54 @@ class _MyStrings extends AppStrings {
   String get aiBadge => 'AI';
 
   @override
-  String get askAiSection => 'AI ကို မေးမယ်';
+  String get conditionSection => 'Sensor အခြေအနေ';
+
+  @override
+  String tempConditionLabel(TempCondition condition) => switch (condition) {
+    TempCondition.coldStress => 'အလွန်အေးလွန်း (15°C အောက်)',
+    TempCondition.low => 'အေးလွန်း (15–20°C)',
+    TempCondition.optimal => 'အကောင်းဆုံး (20–32°C)',
+    TempCondition.warm => 'ပူနွေးလွန်း (32–35°C)',
+    TempCondition.heatStress => 'အလွန်ပူလွန်း (35°C အထက်)',
+  };
+
+  @override
+  String tempConditionAdvice(TempCondition condition) => switch (condition) {
+    TempCondition.coldStress => 'ကြီးထွားမှု ရပ်တန့်ပြီး ပန်းပွင့်ချိန်တွင် အသီးမအောင်နိုင်ပါ။ အနွေးဓာတ် ထိန်းရန် ရေအဆင့် မြှင့်ပေးပါ။',
+    TempCondition.low => 'အပင်ကြီးထွားမှု နှေးကွေးပြီး အမြစ်မှ အာဟာရ စုပ်ယူမှု လျော့နည်းသည်။ ဆက်လက် စောင့်ကြည့်ပါ။',
+    TempCondition.optimal => 'ကြီးထွားမှု၊ သန်မာမှုနှင့် အသီးအောင်မှု အကောင်းဆုံးဖြစ်သည့် အနေအထား။ ပုံမှန်အတိုင်း ထားပါ။',
+    TempCondition.warm => 'အပင် ရေသောက်သုံးမှု များပြားလာပြီး ရေငွေ့ပြန်နှုန်း မြင့်တက်လာသည်။ ရေ ပိုမိုလောင်းပါ။',
+    TempCondition.heatStress => 'အပူဒဏ်ကြောင့် ပန်းပွင့်ချိန်တွင် အသီးမအောင်ဘဲ မြုံနိုင်ပြီး ရေဓာတ် ခမ်းခြောက်နိုင်သည်။ အရိပ်ထဲ ရွှေ့ပြီး ရေလောင်းပါ။',
+  };
+
+  @override
+  String humidityConditionLabel(HumidityCondition condition) => switch (condition) {
+    HumidityCondition.dry => 'ခြောက်သွေ့ (50% အောက်)',
+    HumidityCondition.normal => 'ပုံမှန် (50–80%)',
+    HumidityCondition.high => 'စိုထိုင်းလွန်း (80% အထက်)',
+  };
+
+  @override
+  String humidityConditionAdvice(HumidityCondition condition) => switch (condition) {
+    HumidityCondition.dry => 'စိုထိုင်းဆ နည်းနေသဖြင့် ရေဓာတ် လိုအပ်နိုင်သည်။',
+    HumidityCondition.normal => 'အပင်အတွက် သင့်တော်သော လေထု စိုထိုင်းဆ။',
+    HumidityCondition.high => 'မှိုရောဂါ များနိုင်သဖြင့် သတိထားပါ။ လေဝင်လေထွက် ကောင်းအောင် လုပ်ပါ။',
+  };
+
+  @override
+  String soilConditionLabel(SoilCondition condition) => switch (condition) {
+    SoilCondition.dry => 'ခြောက်သွေ့ (မြေစိုဓာတ် 50% အောက်)',
+    SoilCondition.wet => 'စိုစွတ် (မြေစိုဓာတ် 60% အထက်)',
+  };
+
+  @override
+  String soilConditionAdvice(SoilCondition condition) => switch (condition) {
+    SoilCondition.dry => 'အပင် ရေငတ်နေသည် — ရေလောင်းပေးပါ။',
+    SoilCondition.wet => 'အပင်အတွက် ရေလုံလောက်နေသည်။',
+  };
+
   @override
   String get askAiCameraSection => 'ကင်မရာ ဓာတ်ပုံအတွက် AI ကို မေးမယ်';
-  @override
-  String get askSoilTitle => 'မြေဆီ';
-  @override
-  String get askSoilSubtitle => 'အခု မြေဆီ အခြေအနေ ဘယ်လိုရှိလဲ?';
-  @override
-  String get askTempTitle => 'အပူချိန်';
-  @override
-  String get askTempSubtitle => 'အခု အပူချိန် ဘယ်လောက်ရှိလဲ?';
-  @override
-  String get askHumidityTitle => 'စိုထိုင်းဆ';
-  @override
-  String get askHumiditySubtitle => 'အခု စိုထိုင်းဆ ဘယ်လောက်ရှိလဲ?';
   @override
   String get askDiseaseTitle => 'အပင်ကို စစ်ဆေးမယ်';
   @override
@@ -629,6 +699,7 @@ class _MyStrings extends AppStrings {
     PlantVerdict.dry => 'မြေဆီ ခြောက်နေသည်',
     PlantVerdict.pestRisk => 'ပိုးမွှား/မှိုတက် အန္တရာယ် များနေသည်',
     PlantVerdict.tooHot => 'အပူချိန် မြင့်လွန်းနေသည်',
+    PlantVerdict.tooCold => 'အပူချိန် နိမ့်လွန်းနေသည်',
     PlantVerdict.good => 'အပင် ကျန်းမာရေး ကောင်းသည်',
   };
 
@@ -638,6 +709,7 @@ class _MyStrings extends AppStrings {
     PlantVerdict.dry => 'လုပ်ဆောင်ရန်: အပင်ကို အမြန်ဆုံး ရေလောင်းပါ။',
     PlantVerdict.pestRisk => 'လုပ်ဆောင်ရန်: လေဝင်လေထွက် ကောင်းအောင်လုပ်ပြီး ပိုးသတ်ဆေး ကြိုတင်ဖျန်းပါ။',
     PlantVerdict.tooHot => 'လုပ်ဆောင်ရန်: နေရောင်တိုက်ရိုက်မကျအောင် အရိပ်ထဲ ရွှေ့ပါ။',
+    PlantVerdict.tooCold => 'လုပ်ဆောင်ရန်: အနွေးဓာတ် ရအောင်ထားပြီး အမြစ်ကို ကာကွယ်ရန် ရေအဆင့် မြှင့်ပေးပါ။',
     PlantVerdict.good => 'လုပ်ဆောင်ရန်: မလိုပါ။ ပုံမှန်အတိုင်း ဆက်ပြုစုပါ။',
   };
 

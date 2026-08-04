@@ -13,10 +13,47 @@ enum PlantStatusLevel { unknown, good, warning, critical }
 
 /// စာသားအစား verdict ကို enum အဖြစ်ထားတာမို့ UI ကပဲ ဘာသာစကားအလိုက်
 /// [AppStrings.verdictHeadline] နဲ့ ဘာသာပြန်ပြနိုင်တယ်။
-enum PlantVerdict { unknown, dry, pestRisk, tooHot, good }
+enum PlantVerdict { unknown, dry, pestRisk, tooHot, tooCold, good }
 
 /// ချိတ်ဆက်မှု အမှား အမျိုးအစား (စာသားက UI ဘက်မှာ ဘာသာပြန်ထားတယ်)။
 enum ConnectionError { unreachable, badStatus }
+
+/// Sensor တစ်ခုချင်းစီရဲ့ အခြေအနေ အဆင့် — UI မှာ အရောင်/badge ရွေးဖို့။
+enum ConditionLevel { good, warning, critical }
+
+/// အပူချိန် အခြေအနေ (threshold တွေက [PlantService] ထဲမှာ)။
+enum TempCondition {
+  coldStress(ConditionLevel.critical),
+  low(ConditionLevel.warning),
+  optimal(ConditionLevel.good),
+  warm(ConditionLevel.warning),
+  heatStress(ConditionLevel.critical);
+
+  const TempCondition(this.level);
+
+  final ConditionLevel level;
+}
+
+/// လေထု စိုထိုင်းဆ အခြေအနေ။
+enum HumidityCondition {
+  dry(ConditionLevel.warning),
+  normal(ConditionLevel.good),
+  high(ConditionLevel.warning);
+
+  const HumidityCondition(this.level);
+
+  final ConditionLevel level;
+}
+
+/// မြေဆီ စိုထိုင်းဆ အခြေအနေ (sensor က 0/1 ပဲ ပေးတယ်)။
+enum SoilCondition {
+  dry(ConditionLevel.warning),
+  wet(ConditionLevel.good);
+
+  const SoilCondition(this.level);
+
+  final ConditionLevel level;
+}
 
 /// ESP32-CAM ကနေ ဓာတ်ပုံ မဖမ်းနိုင်တဲ့အခါ ပစ်တဲ့ error။
 class PlantCameraException implements Exception {
@@ -70,14 +107,44 @@ class PlantService extends ChangeNotifier {
 
   // ── Soil moisture as a percentage ──
   // Sensor က 0 / 1 ပဲ ပြန်ပေးတာမို့ UI မှာ percent အဖြစ် ပြနိုင်အောင် map လုပ်ထားတယ်။
+  // Raw 0 = ခြောက်သွေ့ (dry)၊ Raw 1 = စိုစွတ် (moist)။
   // တန်ဖိုးတွေကို ဒီနှစ်ခုပဲ ပြင်ရုံနဲ့ ရတယ်။
-  static const int soilPercentWhenWet = 0;
-  static const int soilPercentWhenDry = 40;
+  static const int soilPercentWhenDry = 0;
+  static const int soilPercentWhenWet = 40;
 
-  int get soilMoisturePercent => soilMoisture == 1 ? soilPercentWhenDry : soilPercentWhenWet;
+  bool get isSoilDry => soilMoisture == 0;
+
+  int get soilMoisturePercent => isSoilDry ? soilPercentWhenDry : soilPercentWhenWet;
+
+  // ── Condition thresholds (AI မလိုဘဲ app ဘက်မှာတိုက်ရိုက် တွက်တဲ့ စည်းမျဉ်းများ) ──
+  // အပူချိန်: <15 အအေးဒဏ် · 15–20 အအေး · 20–32 အကောင်းဆုံး · 32–35 ပူနွေး · >35 အပူဒဏ်
+  static const double tempColdStressBelow = 15.0;
+  static const double tempLowBelow = 20.0;
+  static const double tempOptimalMax = 32.0;
+  static const double tempWarmMax = 35.0;
+
+  // စိုထိုင်းဆ: <50% ခြောက် · 50–80% ပုံမှန် · >80% စိုလွန်း
+  static const double humidityDryBelow = 50.0;
+  static const double humidityNormalMax = 80.0;
+
+  TempCondition get tempCondition {
+    if (temp < tempColdStressBelow) return TempCondition.coldStress;
+    if (temp < tempLowBelow) return TempCondition.low;
+    if (temp <= tempOptimalMax) return TempCondition.optimal;
+    if (temp <= tempWarmMax) return TempCondition.warm;
+    return TempCondition.heatStress;
+  }
+
+  HumidityCondition get humidityCondition {
+    if (humid < humidityDryBelow) return HumidityCondition.dry;
+    if (humid <= humidityNormalMax) return HumidityCondition.normal;
+    return HumidityCondition.high;
+  }
+
+  SoilCondition get soilCondition => isSoilDry ? SoilCondition.dry : SoilCondition.wet;
 
   // ── Derived verdicts ──
-  bool get needsWater => soilMoisture == 1;
+  bool get needsWater => isSoilDry;
   bool get needsNitrogen => nitrogen < nMin;
   bool get needsPhosphorus => phosphorus < pMin;
   bool get needsPotassium => potassium < kMin;
@@ -193,15 +260,18 @@ class PlantService extends ChangeNotifier {
   }
 
   void _recomputeVerdict() {
-    if (soilMoisture == 1) {
+    if (isSoilDry) {
       level = PlantStatusLevel.warning;
       verdict = PlantVerdict.dry;
-    } else if (humid > 80.0 && temp > 28.0) {
+    } else if (humidityCondition == HumidityCondition.high && temp > 28.0) {
       level = PlantStatusLevel.critical;
       verdict = PlantVerdict.pestRisk;
-    } else if (temp > 35.0) {
-      level = PlantStatusLevel.warning;
+    } else if (tempCondition == TempCondition.heatStress || tempCondition == TempCondition.warm) {
+      level = tempCondition.level == ConditionLevel.critical ? PlantStatusLevel.critical : PlantStatusLevel.warning;
       verdict = PlantVerdict.tooHot;
+    } else if (tempCondition == TempCondition.coldStress || tempCondition == TempCondition.low) {
+      level = tempCondition.level == ConditionLevel.critical ? PlantStatusLevel.critical : PlantStatusLevel.warning;
+      verdict = PlantVerdict.tooCold;
     } else {
       level = PlantStatusLevel.good;
       verdict = PlantVerdict.good;

@@ -54,33 +54,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Sensor တန်ဖိုးတွေအပေါ် အခြေခံပြီး AI ကို မေးခွန်းတစ်ခု မေးတယ်။
-  Future<void> _ask({required String title, required String question}) async {
-    setState(() {
-      _askTitle = title;
-      _answer = null;
-      _askError = null;
-      _asking = true;
-      _capturing = false;
-    });
-    try {
-      // API key မရှိရင် GeminiService constructor ကတည်းက exception ပစ်တယ်။
-      final answer = await GeminiService().askAboutSensors(
-        question: question,
-        temperature: _service.temp,
-        humidity: _service.humid,
-        soilMoisture: _service.soilMoisture,
-        soilMoisturePercent: _service.soilMoisturePercent,
-      );
-      if (mounted) setState(() => _answer = answer);
-    } catch (e) {
-      if (mounted) setState(() => _askError = _messageFor(e));
-    } finally {
-      if (mounted) setState(() => _asking = false);
-    }
-  }
-
   /// ESP32-CAM ကနေ ဓာတ်ပုံတစ်ပုံ ဖမ်းပြီး အဲဒီပုံအပေါ် AI ကို မေးတယ်။
+  /// အပူချိန်/စိုထိုင်းဆ/မြေဆီ အခြေအနေတွေကတော့ AI မလိုဘဲ threshold နဲ့ တွက်တာမို့
+  /// AI ကို ဓာတ်ပုံအခြေခံ မေးခွန်း (ရောဂါ/ဆေးဖျန်း) အတွက်ပဲ သုံးတယ်။
   Future<void> _askAboutPhoto({required String title, required String question}) async {
     setState(() {
       _askTitle = title;
@@ -157,9 +133,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 16),
                     _buildSensorReadings(),
                     const SizedBox(height: 24),
-                    _sectionTitle(CupertinoIcons.sparkles, _s.askAiSection, AppColors.purple),
+                    _sectionTitle(CupertinoIcons.checkmark_seal, _s.conditionSection, AppColors.green),
                     const SizedBox(height: 12),
-                    _sensorQuestionButtons(),
+                    _conditionCard(),
                     const SizedBox(height: 20),
                     _sectionTitle(CupertinoIcons.camera_viewfinder, _s.askAiCameraSection, AppColors.blue),
                     const SizedBox(height: 12),
@@ -350,45 +326,128 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ── AI ကို မေးမယ် (sensor အခြေခံ) ──
-  Widget _sensorQuestionButtons() {
+  // ── Sensor အခြေအနေ (AI မလို — threshold တွေနဲ့ app ကိုယ်တိုင် တွက်တာ) ──
+  Widget _conditionCard() {
+    if (!_service.hasData) {
+      return _card(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _s.waitingForSensorTitle,
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.label),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _s.waitingForSensorMessage,
+                  style: const TextStyle(fontSize: 12.5, color: AppColors.secondaryLabel, height: 1.35),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
+    final temp = _service.tempCondition;
+    final humidity = _service.humidityCondition;
+    final soil = _service.soilCondition;
+
     return _card(
       children: [
-        _askRow(
-          icon: CupertinoIcons.leaf_arrow_circlepath,
-          color: AppColors.teal,
-          title: _s.askSoilTitle,
-          subtitle: _s.askSoilSubtitle,
-          onPressed: () => _ask(
-            title: _s.askSoilTitle,
-            question: 'How is the soil moisture right now, and does the plant need watering?',
-          ),
-        ),
-        const _Separator(),
-        _askRow(
+        _conditionRow(
           icon: CupertinoIcons.thermometer,
-          color: AppColors.orange,
-          title: _s.askTempTitle,
-          subtitle: _s.askTempSubtitle,
-          onPressed: () => _ask(
-            title: _s.askTempTitle,
-            question: 'What is the temperature right now, and is it good for the plant?',
-          ),
+          title: _s.temperature,
+          reading: '${_service.temp.toStringAsFixed(1)}°C',
+          label: _s.tempConditionLabel(temp),
+          advice: _s.tempConditionAdvice(temp),
+          level: temp.level,
         ),
         const _Separator(),
-        _askRow(
+        _conditionRow(
           icon: CupertinoIcons.drop,
-          color: AppColors.blue,
-          title: _s.askHumidityTitle,
-          subtitle: _s.askHumiditySubtitle,
-          onPressed: () => _ask(
-            title: _s.askHumidityTitle,
-            question: 'What is the air humidity right now, and is it good for the plant?',
-          ),
+          title: _s.humidity,
+          reading: '${_service.humid.toStringAsFixed(0)}%',
+          label: _s.humidityConditionLabel(humidity),
+          advice: _s.humidityConditionAdvice(humidity),
+          level: humidity.level,
+        ),
+        const _Separator(),
+        _conditionRow(
+          icon: CupertinoIcons.leaf_arrow_circlepath,
+          title: _s.soilMoisture,
+          reading: '${_service.soilMoisturePercent}%',
+          label: _s.soilConditionLabel(soil),
+          advice: _s.soilConditionAdvice(soil),
+          level: soil.level,
         ),
       ],
     );
   }
+
+  Widget _conditionRow({
+    required IconData icon,
+    required String title,
+    required String reading,
+    required String label,
+    required String advice,
+    required ConditionLevel level,
+  }) {
+    final color = _levelColor(level);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(11)),
+            child: Icon(icon, size: 19, color: color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.label),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      reading,
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: color),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  label,
+                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: color, height: 1.3),
+                ),
+                const SizedBox(height: 2),
+                Text(advice, style: const TextStyle(fontSize: 12.5, color: AppColors.secondaryLabel, height: 1.35)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _levelColor(ConditionLevel level) => switch (level) {
+    ConditionLevel.good => AppColors.green,
+    ConditionLevel.warning => AppColors.orange,
+    ConditionLevel.critical => AppColors.red,
+  };
 
   // ── AI ကို မေးမယ် (ကင်မရာ ဓာတ်ပုံ အခြေခံ) ──
   Widget _photoQuestionButtons() {
