@@ -7,7 +7,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../l10n/app_strings.dart';
 import '../models/ai_care_advice.dart';
 
-/// Gemini call တစ်ခု မအောင်မြင်တဲ့အခါ ပစ်တဲ့ error။
+/// AI call တစ်ခု မအောင်မြင်တဲ့အခါ ပစ်တဲ့ error။
 /// [message] က user ကို တိုက်ရိုက်ပြလို့ရအောင် ရေးထားတယ် — raw JSON မဟုတ်ပါ။
 class GeminiException implements Exception {
   const GeminiException(this.message, {this.retryAfter, this.isQuota = false});
@@ -20,26 +20,43 @@ class GeminiException implements Exception {
   String toString() => message;
 }
 
+/// OpenRouter (OpenAI-compatible chat completions) ကို သုံးတယ်။
+/// အရင်က Gemini native API နဲ့ ခေါ်ထားတာကို ဒီမှာ ပြောင်းလိုက်တာ —
+/// class/exception နာမည်တွေကတော့ call site တွေ မထိရအောင် အတူတူပဲ ထားထားတယ်။
 class GeminiService {
   final String _apiKey;
+  final String _baseUrl;
   final String _model;
+  final String _visionModel;
 
-  /// Free tier မှာ model တစ်ခုချင်း quota မတူတာမို့ .env က `GEMINI_MODEL` နဲ့
-  /// ပြောင်းလို့ရအောင် ထားတယ် (ဥပမာ gemini-2.5-flash-lite)။
-  static const String _defaultModel = 'gemini-2.5-flash';
+  static const String _defaultBaseUrl = 'https://openrouter.ai/api/v1';
+  static const String _defaultModel = 'openai/gpt-oss-120b';
 
-  GeminiService() : _apiKey = dotenv.env['GEMINI_API_KEY'] ?? '', _model = dotenv.env['GEMINI_MODEL']?.trim().isNotEmpty == true ? dotenv.env['GEMINI_MODEL']!.trim() : _defaultModel {
+  /// gpt-oss-120b က text-only မို့ ဓာတ်ပုံပါလာရင် ဒီ model ကို သုံးတယ်။
+  static const String _defaultVisionModel = 'google/gemma-4-31b-it:free';
+
+  GeminiService()
+    : _apiKey = _env('OPENROUTER_API_KEY') ?? '',
+      _baseUrl = (_env('OPENROUTER_BASE_URL') ?? _defaultBaseUrl).replaceAll(RegExp(r'/+$'), ''),
+      _model = _env('OPENROUTER_MODEL') ?? _defaultModel,
+      _visionModel = _env('OPENROUTER_VISION_MODEL') ?? _defaultVisionModel {
     if (_apiKey.isEmpty) {
-      throw const GeminiException('GEMINI_API_KEY is missing. Add it to the .env file and restart the app.');
+      throw const GeminiException('OPENROUTER_API_KEY is missing. Add it to the .env file and restart the app.');
     }
   }
 
-  String get _endpoint => 'https://generativelanguage.googleapis.com/v1beta/models/$_model:generateContent';
+  /// .env value ကို trim လုပ်ပြီး ဗလာဆိုရင် null ပြန်ပေးတယ်။
+  static String? _env(String key) {
+    final value = dotenv.env[key]?.trim();
+    return (value == null || value.isEmpty) ? null : value;
+  }
+
+  String get _endpoint => '$_baseUrl/chat/completions';
 
   /// Settings မှာ ရွေးထားတဲ့ ဘာသာစကားနဲ့ပဲ AI က ပြန်ဖြေအောင် prompt ထဲ ထည့်ပေးတယ်။
   String get _languageInstruction => 'Write every piece of text you return in ${LocaleController.instance.language.promptName}. ';
 
-  /// Sensor readings သီးသန့် (ဓာတ်ပုံမပါဘဲ) ကို Gemini ဆီပို့ပြီး
+  /// Sensor readings သီးသန့် (ဓာတ်ပုံမပါဘဲ) ကို AI ဆီပို့ပြီး
   /// Home screen ရဲ့ Care Guide အတွက် structured JSON အကြံပြုချက် ပြန်ယူတယ်။
   Future<AiCareAdvice> careGuideFromSensors({
     required double temperature,
@@ -85,82 +102,102 @@ class GeminiService {
     return AiCareAdvice.parse(text);
   }
 
-  /// Gemini generateContent ကို ခေါ်ပြီး ပထမ text part ကို ပြန်ပေးတယ်။
+  /// chat/completions ကို ခေါ်ပြီး ပထမ choice ရဲ့ content ကို ပြန်ပေးတယ်။
+  /// [parts] က `{'text': ...}` ဒါမှမဟုတ် `{'inline_data': {'mime_type':..., 'data': base64}}`
+  /// အဖြစ် လက်ခံပြီး OpenAI content-part အဖြစ် ဒီထဲမှာပဲ ပြောင်းပေးတယ်။
   Future<String> _generate(List<Map<String, dynamic>> parts, {bool jsonOutput = false}) async {
+    final hasImage = parts.any((p) => p.containsKey('inline_data'));
+    final model = hasImage ? _visionModel : _model;
+
+    final content = parts.map((part) {
+      final inline = part['inline_data'] as Map<String, dynamic>?;
+      if (inline != null) {
+        return {
+          'type': 'image_url',
+          'image_url': {'url': 'data:${inline['mime_type']};base64,${inline['data']}'},
+        };
+      }
+      return {'type': 'text', 'text': (part['text'] ?? '').toString()};
+    }).toList();
+
     final http.Response response;
     try {
       response = await http
           .post(
-            Uri.parse('$_endpoint?key=$_apiKey'),
-            headers: {'Content-Type': 'application/json'},
+            Uri.parse(_endpoint),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $_apiKey',
+              // OpenRouter က ဒီ header နှစ်ခုကို leaderboard/attribution အတွက် သုံးတယ် (optional)။
+              'HTTP-Referer': 'https://github.com/plant-monitoring',
+              'X-Title': 'Plant Monitoring',
+            },
             body: jsonEncode({
-              'contents': [
-                {'parts': parts},
+              'model': model,
+              'messages': [
+                {'role': 'user', 'content': content},
               ],
-              if (jsonOutput) 'generationConfig': {'response_mime_type': 'application/json'},
+              if (jsonOutput) 'response_format': {'type': 'json_object'},
             }),
           )
-          .timeout(const Duration(seconds: 45));
+          .timeout(const Duration(seconds: 60));
     } catch (e) {
-      throw GeminiException('Could not reach Gemini. Check your internet connection.\n($e)');
+      throw GeminiException('Could not reach the AI service. Check your internet connection.\n($e)');
     }
 
-    if (response.statusCode != 200) throw _errorFor(response);
+    if (response.statusCode != 200) throw _errorFor(response, model);
 
-    final data = jsonDecode(response.body);
-    final candidates = data['candidates'] as List?;
-    if (candidates == null || candidates.isEmpty) {
-      // safety filter နဲ့ ပိတ်ခံရရင် candidates မပါဘဲ promptFeedback ပဲ ပါလာတယ်။
-      final blocked = data['promptFeedback']?['blockReason'];
-      throw GeminiException(blocked != null ? 'Gemini blocked this request ($blocked).' : 'Gemini returned an empty response. Try again.');
+    final data = jsonDecode(utf8.decode(response.bodyBytes));
+    // OpenRouter က HTTP 200 နဲ့တောင် body ထဲမှာ error ထည့်ပြန်နိုင်တယ်။
+    final inlineError = data['error'];
+    if (inlineError != null) {
+      throw GeminiException(inlineError['message']?.toString() ?? 'The AI service returned an error.');
     }
-    final responseParts = (candidates[0]['content']?['parts'] as List?) ?? const [];
-    if (responseParts.isEmpty) {
-      throw const GeminiException('Gemini returned an empty response. Try again.');
-    }
-    return (responseParts[0]['text'] ?? '').toString();
-  }
 
-  /// 400/403 က API key ကြောင့်လား၊ တခြားအကြောင်းကြောင့်လား ခွဲခြားတယ်။
-  bool _looksLikeKeyProblem(String? message) {
-    if (message == null) return true; // message မပါရင် key ကို အရင်သံသယရှိမယ်
-    final m = message.toLowerCase();
-    return m.contains('api key') || m.contains('api_key') || m.contains('permission') || m.contains('unauthenticated');
+    final choices = data['choices'] as List?;
+    if (choices == null || choices.isEmpty) {
+      throw const GeminiException('The AI returned an empty response. Try again.');
+    }
+    final text = (choices[0]['message']?['content'] ?? '').toString();
+    if (text.trim().isEmpty) {
+      final reason = choices[0]['finish_reason']?.toString();
+      throw GeminiException(
+        reason == 'content_filter' ? 'The AI blocked this request (content filter).' : 'The AI returned an empty response. Try again.',
+      );
+    }
+    return text;
   }
 
   /// HTTP error body ထဲက အဓိကအချက်ကို ဆွဲထုတ်ပြီး ဖတ်လို့ရတဲ့ message အဖြစ် ပြောင်းတယ်။
   /// (အရင်က raw JSON တစ်ခုလုံး screen ပေါ်တင်နေလို့ ဒီနေရာမှာ စစ်ထားတာပါ။)
-  GeminiException _errorFor(http.Response response) {
+  GeminiException _errorFor(http.Response response, String model) {
     String? apiMessage;
-    Duration? retryAfter;
     try {
-      final error = jsonDecode(response.body)['error'];
-      apiMessage = error?['message']?.toString();
-      for (final d in (error?['details'] as List? ?? const [])) {
-        final delay = d is Map ? d['retryDelay']?.toString() : null;
-        final seconds = delay == null ? null : double.tryParse(delay.replaceAll('s', ''));
-        if (seconds != null) retryAfter = Duration(seconds: seconds.ceil());
-      }
+      final body = jsonDecode(utf8.decode(response.bodyBytes));
+      final error = body['error'];
+      apiMessage = (error is Map ? error['message'] : error)?.toString() ?? body['message']?.toString();
     } catch (_) {
       // JSON မဟုတ်ရင် status code သက်သက်နဲ့ပဲ ဆက်သွားမယ်။
     }
 
+    // Rate limit ဆိုရင် OpenRouter က Retry-After header ပြန်ပေးတယ်။
+    final retrySeconds = int.tryParse(response.headers['retry-after'] ?? '');
+    final retryAfter = retrySeconds == null ? null : Duration(seconds: retrySeconds);
+
     return switch (response.statusCode) {
+      401 => GeminiException('OpenRouter rejected the API key (HTTP 401). Check OPENROUTER_API_KEY in .env.\n\n$apiMessage'),
+      402 => const GeminiException('This OpenRouter account is out of credits for that model. Add credits, or set OPENROUTER_MODEL in .env to a free model.'),
+      403 => GeminiException('OpenRouter refused this request (HTTP 403).\n\n$apiMessage'),
+      404 => GeminiException('Model "$model" is not available on OpenRouter for this key. Set OPENROUTER_MODEL in .env to a supported model.'),
       429 => GeminiException(
         retryAfter != null
-            ? 'Gemini quota reached for "$_model". Try again in ${retryAfter.inSeconds}s, or set GEMINI_MODEL in .env to a model your key has free-tier quota for.'
-            : 'Gemini quota reached for "$_model". Wait a moment, or set GEMINI_MODEL in .env to a model your key has free-tier quota for.',
+            ? 'Rate limit reached for "$model". Try again in ${retryAfter.inSeconds}s, or set OPENROUTER_MODEL in .env to another model.'
+            : 'Rate limit reached for "$model". Wait a moment, or set OPENROUTER_MODEL in .env to another model.',
         retryAfter: retryAfter,
         isQuota: true,
       ),
-      // 400 က key ပြဿနာချည်း မဟုတ်ဘူး — ပုံ ဖတ်မရတာ၊ request ကြီးလွန်းတာလည်း ဖြစ်နိုင်တာမို့
-      // API ရဲ့ message ကိုယ်တိုင်ကို ပြပေးတယ်။
-      400 || 403 when _looksLikeKeyProblem(apiMessage) => GeminiException(
-        'Gemini rejected the API key (HTTP ${response.statusCode}). Check GEMINI_API_KEY in .env.\n\n$apiMessage',
-      ),
-      404 => GeminiException('Model "$_model" is not available for this API key. Set GEMINI_MODEL in .env to a supported model.'),
-      >= 500 => const GeminiException('Gemini is temporarily unavailable. Please try again shortly.'),
-      _ => GeminiException(apiMessage != null ? '$apiMessage\n\n(HTTP ${response.statusCode})' : 'Gemini error (HTTP ${response.statusCode}).'),
+      >= 500 => const GeminiException('The AI service is temporarily unavailable. Please try again shortly.'),
+      _ => GeminiException(apiMessage != null ? '$apiMessage\n\n(HTTP ${response.statusCode})' : 'AI service error (HTTP ${response.statusCode}).'),
     };
   }
 
