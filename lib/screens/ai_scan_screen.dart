@@ -29,6 +29,7 @@ class _AiScanScreenState extends State<AiScanScreen> {
   File? _image;
   String? _result;
   String? _error;
+  String? _errorTitle; // သတိပေးချက် ခေါင်းစဉ် (မထည့်ရင် "စစ်ဆေး၍ မရပါ" ကို သုံးတယ်)
   bool _analyzing = false;
 
   Future<void> _pick(ImageSource source) async {
@@ -53,6 +54,7 @@ class _AiScanScreenState extends State<AiScanScreen> {
     setState(() {
       _analyzing = true;
       _error = null;
+      _errorTitle = null;
     });
     try {
       // API key မရှိရင် GeminiService constructor က exception ပစ်တာမို့ ဒီထဲမှာပဲ ဖမ်းထားတယ်။
@@ -69,7 +71,22 @@ class _AiScanScreenState extends State<AiScanScreen> {
       if (mounted) setState(() => _result = answer);
     } catch (e) {
       // GeminiException က user ကို ပြလို့ရတဲ့ စာသား ဖြစ်ပြီးသားမို့ တိုက်ရိုက်ပြတယ်။
-      if (mounted) setState(() => _error = e is GeminiException ? e.message : _s.aiAnalysisFailed(e));
+      // ဖတ်လို့မရတဲ့ အဖြေဆိုရင်တော့ အဖြေအစား ဘာသာစကားအလိုက် သတိပေးချက်ကို ပြတယ်။
+      if (mounted) {
+        setState(() {
+          _errorTitle = switch (e) {
+            AiUnreadableException() => _s.unreadableAnswerTitle,
+            NotAPlantException() => _s.notAPlantTitle,
+            _ => null,
+          };
+          _error = switch (e) {
+            AiUnreadableException() => _s.unreadableAnswerMessage,
+            NotAPlantException() => _s.notAPlantMessage,
+            GeminiException() => e.message,
+            _ => _s.aiAnalysisFailed(e),
+          };
+        });
+      }
     } finally {
       if (mounted) setState(() => _analyzing = false);
     }
@@ -300,7 +317,7 @@ class _AiScanScreenState extends State<AiScanScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  _s.couldNotAnalyze,
+                  _errorTitle ?? _s.couldNotAnalyze,
                   style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.label),
                 ),
               ),

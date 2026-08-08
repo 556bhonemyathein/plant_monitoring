@@ -153,6 +153,14 @@ abstract class AppStrings {
   String couldNotOpenImage(Object error);
   String aiAnalysisFailed(Object error);
 
+  /// AI က ရွေးထားတဲ့ ဘာသာစကားနဲ့ မဟုတ်ဘဲ ပြန်ဖြေတဲ့အခါ — ဖတ်လို့မရတဲ့ စာသားအစား ဒါကို ပြတယ်။
+  String get unreadableAnswerTitle;
+  String get unreadableAnswerMessage;
+
+  /// ဓာတ်ပုံထဲမှာ အပင် မပါတဲ့အခါ — အပင်နဲ့မဆိုင်တဲ့ အဖြေ မပြဘဲ ဒါကို ပြတယ်။
+  String get notAPlantTitle;
+  String get notAPlantMessage;
+
   // ── Settings ──
   String get settingsTitle;
   String get languageSection;
@@ -373,6 +381,16 @@ class _EnStrings extends AppStrings {
   String couldNotOpenImage(Object error) => 'Could not open the image: $error';
   @override
   String aiAnalysisFailed(Object error) => 'AI analysis failed: $error';
+  @override
+  String get unreadableAnswerTitle => 'Answer was not readable';
+  @override
+  String get unreadableAnswerMessage =>
+      'The AI replied in a language this screen could not show properly, so the answer was hidden. Please try again.';
+  @override
+  String get notAPlantTitle => 'No plant in this photo';
+  @override
+  String get notAPlantMessage =>
+      'This app only answers questions about plants, and this photo does not seem to show one. Point the camera at the plant and try again.';
 
   @override
   String get settingsTitle => 'Settings';
@@ -645,6 +663,14 @@ class _MyStrings extends AppStrings {
   String couldNotOpenImage(Object error) => 'ဓာတ်ပုံကို ဖွင့်၍ မရပါ — $error';
   @override
   String aiAnalysisFailed(Object error) => 'AI စစ်ဆေးမှု မအောင်မြင်ပါ — $error';
+  @override
+  String get unreadableAnswerTitle => 'အဖြေကို ဖတ်၍ မရပါ';
+  @override
+  String get unreadableAnswerMessage => 'AI က မြန်မာလို ပြန်မဖြေဘဲ ဖတ်၍မရသော စာသား ဖြစ်နေသဖြင့် မပြသတော့ပါ။ ထပ်မံ စမ်းကြည့်ပါ။';
+  @override
+  String get notAPlantTitle => 'ဤဓာတ်ပုံတွင် အပင် မတွေ့ပါ';
+  @override
+  String get notAPlantMessage => 'ဤအက်ပ်သည် အပင်နှင့် ပတ်သက်သည့် အကြောင်းအရာများကိုသာ ဖြေကြားပါသည်။ ကင်မရာကို အပင်ဆီ ချိန်ပြီး ထပ်မံ စမ်းကြည့်ပါ။';
 
   @override
   String get settingsTitle => 'ဆက်တင်';

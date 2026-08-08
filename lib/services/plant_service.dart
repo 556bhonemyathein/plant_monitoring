@@ -99,6 +99,10 @@ class PlantService extends ChangeNotifier {
   double light = 0.0;
 
   // ── Meta ──
+  /// ESP32-CAM က client တစ်ခုတည်းသာ လက်ခံတာမို့ ဓာတ်ပုံဖမ်းနေချိန်မှာ
+  /// live preview တွေက ဒီ flag ကို ကြည့်ပြီး ခဏ ဖြုတ်ပေးရတယ်။
+  bool streamPaused = false;
+
   bool isLoading = false;
   bool hasData = false;
   ConnectionError? lastError;
@@ -245,18 +249,82 @@ class PlantService extends ChangeNotifier {
   }
 
   /// ESP32-CAM ကနေ ဓာတ်ပုံတစ်ပုံ ဖမ်းယူတယ် (AI ကို ပို့ဖို့)။
-  /// မရရင် ဖတ်လို့ရတဲ့ message နဲ့ Exception ပစ်တယ်။
+  ///
+  /// ESP32-CAM က client တစ်ခုတည်းသာ လက်ခံတာမို့ ဖမ်းနေချိန်မှာ live preview တွေကို
+  /// [streamPaused] နဲ့ ဖြုတ်ထားရတယ် — မဟုတ်ရင် socket မလွတ်လို့ capture က အမြဲကျတယ်။
+  /// /capture endpoint မရှိတဲ့ firmware ဆိုရင် MJPEG stream ထဲက frame တစ်ခုကို
+  /// ဆွဲထုတ်ပြီး သုံးတယ်။
   Future<Uint8List> captureStill() async {
-    final http.Response response;
+    streamPaused = true;
+    notifyListeners();
+    // preview socket အပြည့်အဝ ပိတ်သွားဖို့ ခဏစောင့်။
+    await Future<void>.delayed(const Duration(milliseconds: 600));
     try {
-      response = await http.get(Uri.parse(captureUrl)).timeout(const Duration(seconds: 15));
-    } catch (_) {
+      // firmware အလိုက် /capture က stream port မှာ ဒါမှမဟုတ် port 80 မှာ ရှိနိုင်တယ်။
+      for (final url in {captureUrl, 'http://$host/capture'}) {
+        final bytes = await _tryCapture(url);
+        if (bytes != null) return bytes;
+      }
+      final frame = await _frameFromStream();
+      if (frame != null) return frame;
       throw PlantCameraException(captureUrl);
+    } finally {
+      streamPaused = false;
+      notifyListeners();
     }
-    if (response.statusCode != 200 || response.bodyBytes.isEmpty) {
-      throw PlantCameraException(captureUrl, statusCode: response.statusCode);
+  }
+
+  /// /capture endpoint တစ်ခုကို စမ်းခေါ်တယ် — JPEG မဟုတ်ရင် (404 page စတာ) null ပြန်တယ်။
+  Future<Uint8List?> _tryCapture(String url) async {
+    try {
+      final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 15));
+      if (response.statusCode != 200) return null;
+      final bytes = response.bodyBytes;
+      return _isJpeg(bytes) ? bytes : null;
+    } catch (_) {
+      return null;
     }
-    return response.bodyBytes;
+  }
+
+  /// MJPEG stream ကို ဖွင့်ပြီး ပထမဆုံး ပြည့်စုံတဲ့ JPEG frame တစ်ခုကို ဆွဲထုတ်တယ်။
+  /// multipart boundary တွေကို ဖတ်စရာမလိုဘဲ SOI (FFD8) → EOI (FFD9) ကိုပဲ ရှာတယ်။
+  Future<Uint8List?> _frameFromStream() async {
+    final client = http.Client();
+    try {
+      final request = http.Request('GET', Uri.parse(streamUrl));
+      final response = await client.send(request).timeout(const Duration(seconds: 10));
+      if (response.statusCode != 200) return null;
+
+      final buffer = <int>[];
+      await for (final chunk in response.stream.timeout(const Duration(seconds: 10))) {
+        buffer.addAll(chunk);
+        final frame = _extractJpeg(Uint8List.fromList(buffer));
+        if (frame != null) return frame;
+        // frame တစ်ခုစာထက် များစွာ ကြီးလာရင် ရပ် (ဖမ်းလို့မရတဲ့ stream ကနေ memory မကုန်အောင်)။
+        if (buffer.length > 4 * 1024 * 1024) break;
+      }
+      return null;
+    } catch (_) {
+      return null;
+    } finally {
+      client.close();
+    }
+  }
+
+  static bool _isJpeg(Uint8List bytes) => bytes.length > 3 && bytes[0] == 0xFF && bytes[1] == 0xD8;
+
+  /// buffer ထဲမှာ SOI နဲ့ EOI နှစ်ခုလုံး ရှိပြီဆိုရင် ကြားထဲက JPEG ကို ပြန်ပေးတယ်။
+  static Uint8List? _extractJpeg(Uint8List bytes) {
+    var start = -1;
+    for (var i = 0; i + 1 < bytes.length; i++) {
+      if (bytes[i] != 0xFF) continue;
+      if (start < 0) {
+        if (bytes[i + 1] == 0xD8) start = i;
+      } else if (bytes[i + 1] == 0xD9) {
+        return Uint8List.sublistView(bytes, start, i + 2);
+      }
+    }
+    return null;
   }
 
   void _recomputeVerdict() {

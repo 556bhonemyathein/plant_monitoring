@@ -1,4 +1,6 @@
+import 'dart:typed_data';
 import 'dart:ui' as ui;
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_mjpeg/flutter_mjpeg.dart';
 import '../l10n/app_strings.dart';
@@ -23,6 +25,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // ── "AI ကို မေးမယ်" ခလုတ်တွေရဲ့ အခြေအနေ ──
   String? _askTitle; // ဘယ်ခလုတ်ကို နှိပ်ထားလဲ (အဖြေ card ရဲ့ ခေါင်းစဉ်)
+  ({String title, String question})? _lastAsk; // "ထပ်စမ်းရန်" အတွက် နောက်ဆုံးမေးခွန်း
+  Uint8List? _photo; // AI ကို ပို့လိုက်တဲ့ ESP32-CAM ဓာတ်ပုံ (အဖြေနဲ့အတူ ပြဖို့)
   String? _answer;
   String? _askError;
   bool _asking = false;
@@ -60,6 +64,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _askAboutPhoto({required String title, required String question}) async {
     setState(() {
       _askTitle = title;
+      _lastAsk = (title: title, question: question);
+      _photo = null;
       _answer = null;
       _askError = null;
       _asking = true;
@@ -67,7 +73,12 @@ class _HomeScreenState extends State<HomeScreen> {
     });
     try {
       final photo = await _service.captureStill();
-      if (mounted) setState(() => _capturing = false);
+      if (mounted) {
+        setState(() {
+          _capturing = false;
+          _photo = photo;
+        });
+      }
       final answer = await GeminiService().analyzeImageBytes(
         photo,
         question: question,
@@ -77,7 +88,13 @@ class _HomeScreenState extends State<HomeScreen> {
       );
       if (mounted) setState(() => _answer = answer);
     } catch (e) {
-      if (mounted) setState(() => _askError = _messageFor(e));
+      if (mounted) {
+        setState(() {
+          _askError = _messageFor(e);
+          // card ရဲ့ ခေါင်းစဉ်ကိုပါ သတိပေးချက်အဖြစ် ပြောင်းပေးတယ်။
+          _askTitle = _errorTitleFor(e) ?? _askTitle;
+        });
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -90,9 +107,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Exception တွေကို user ကို ပြလို့ရတဲ့ စာသားအဖြစ် ပြောင်းတယ်။
   String _messageFor(Object e) => switch (e) {
+    // ဘာသာစကား မှားပြီး ဖတ်လို့မရတဲ့ အဖြေ၊ အပင်မဟုတ်တဲ့ ဓာတ်ပုံ နှစ်မျိုးလုံးမှာ
+    // AI ရဲ့ စာသားကို လုံးဝ မပြဘဲ သတိပေးချက်ပဲ ပြတယ်။
+    AiUnreadableException() => _s.unreadableAnswerMessage,
+    NotAPlantException() => _s.notAPlantMessage,
     GeminiException() => e.message,
     PlantCameraException() => _s.captureFailed(e.url),
     _ => _s.aiAnalysisFailed(e),
+  };
+
+  /// သတိပေးချက် အမျိုးအစားအလိုက် answer card ရဲ့ ခေါင်းစဉ် (မရှိရင် ခလုတ်နာမည် အတိုင်း)။
+  String? _errorTitleFor(Object e) => switch (e) {
+    AiUnreadableException() => _s.unreadableAnswerTitle,
+    NotAPlantException() => _s.notAPlantTitle,
+    _ => null,
   };
 
   @override
@@ -164,7 +192,8 @@ class _HomeScreenState extends State<HomeScreen> {
     // ESP32-CAM က stream client တစ်ခုတည်းသာ လက်ခံတယ်။ IndexedStack ကြောင့်
     // Live tab ကလည်း အသက်ရှင်နေတာမို့ ဒီ preview က Home ကို ဖွင့်ထားချိန်မှသာ
     // ချိတ်ရမယ် — မဟုတ်ရင် နှစ်ခုလုံး လုနေပြီး တစ်ခုက ပုံမရဘူး။
-    final streaming = ActiveTab.isActive(context, ActiveTab.home);
+    // ဓာတ်ပုံဖမ်းနေချိန်မှာလည်း ဖြုတ်ထားရမယ် — camera က connection တစ်ခုပဲ ပေးလို့။
+    final streaming = ActiveTab.isActive(context, ActiveTab.home) && !_service.streamPaused;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(14),
@@ -460,7 +489,10 @@ class _HomeScreenState extends State<HomeScreen> {
           subtitle: _s.askDiseaseSubtitle,
           onPressed: () => _askAboutPhoto(
             title: _s.askDiseaseTitle,
-            question: 'What disease, pest or deficiency does this plant have? Name the most likely one and the signs you can see.',
+            question:
+                'What rice disease, pest or nutrient deficiency does this crop have? '
+                'Name the most likely one (use the common rice name, e.g. blast, bacterial leaf blight, brown planthopper) '
+                'and the signs you can see in the photo.',
           ),
         ),
         const _Separator(),
@@ -471,7 +503,10 @@ class _HomeScreenState extends State<HomeScreen> {
           subtitle: _s.askSpraySubtitle,
           onPressed: () => _askAboutPhoto(
             title: _s.askSprayTitle,
-            question: 'Based on this photo, what should I spray or apply to treat the plant? Give the treatment type, how to mix it and how often.',
+            question:
+                'Based on this photo, what should I spray or apply to this paddy field? '
+                'Give the treatment or fertiliser, how to mix it, the rate per acre, how often to apply it, '
+                'and say whether the field water level should be changed.',
           ),
         ),
       ],
@@ -561,14 +596,42 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           const SizedBox(height: 12),
+          // AI ကို တကယ် ပို့လိုက်တဲ့ frame — ဘာကို ကြည့်ပြီး ဖြေထားလဲ မြင်ရအောင်။
+          if (_photo != null) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: AspectRatio(
+                aspectRatio: 4 / 3,
+                child: Image.memory(_photo!, fit: BoxFit.cover, gaplessPlayback: true),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
           if (busy)
             Text(
               _capturing ? _s.capturingPhoto : _s.aiThinking,
               style: const TextStyle(fontSize: 13.5, color: AppColors.secondaryLabel, height: 1.4),
             )
-          else if (error != null)
-            Text(error, style: const TextStyle(fontSize: 13.5, color: AppColors.secondaryLabel, height: 1.4))
-          else if (_answer != null)
+          else if (error != null) ...[
+            Text(error, style: const TextStyle(fontSize: 13.5, color: AppColors.secondaryLabel, height: 1.4)),
+            if (_lastAsk != null) ...[
+              const SizedBox(height: 14),
+              SizedBox(
+                height: 42,
+                width: double.infinity,
+                child: CupertinoButton(
+                  color: AppColors.fill,
+                  borderRadius: BorderRadius.circular(12),
+                  padding: EdgeInsets.zero,
+                  onPressed: () => _askAboutPhoto(title: _lastAsk!.title, question: _lastAsk!.question),
+                  child: Text(
+                    _s.tryAgain,
+                    style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600, color: AppColors.label),
+                  ),
+                ),
+              ),
+            ],
+          ] else if (_answer != null)
             RichAnswer(text: _answer!),
         ],
       ),
