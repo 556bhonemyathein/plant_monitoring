@@ -13,7 +13,8 @@ void main() async {
   // Hold the native splash screen until startup work below is done.
   FlutterNativeSplash.preserve(widgetsBinding: binding);
 
-  // Load .env file
+  // Load .env
+  // file
   await dotenv.load(fileName: '.env');
 
   // Initialize Firebase
@@ -40,11 +41,7 @@ class MyApp extends StatelessWidget {
           primaryColor: AppColors.green,
           brightness: Brightness.light,
           scaffoldBackgroundColor: AppColors.background,
-          textTheme: CupertinoTextThemeData(
-            textStyle: TextStyle(
-              fontSize: 17,
-            ),
-          ),
+          textTheme: CupertinoTextThemeData(textStyle: TextStyle(fontSize: 17)),
         ),
         home: const RootShell(),
       ),

@@ -29,7 +29,8 @@ class _CameraScreenState extends State<CameraScreen> {
     final s = AppLocale.of(context);
     // Home tab ကို ပြန်သွားရင် ဒီက connection ကို လွှတ်ပေးရမယ် —
     // ESP32-CAM က stream client တစ်ခုတည်းသာ လက်ခံလို့။
-    final streaming = ActiveTab.isActive(context, ActiveTab.live);
+    // ဓာတ်ပုံဖမ်းနေချိန် (Home tab က AI မေးခွန်း) မှာလည်း connection ကို လွှတ်ပေးရမယ်။
+    final streaming = ActiveTab.isActive(context, ActiveTab.live) && !_service.streamPaused;
 
     return ListenableBuilder(
       listenable: _service,

@@ -150,21 +150,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              _sectionLabel(s.thresholdsSection),
-              _card(
-                child: Column(
-                  children: [
-                    _row(icon: CupertinoIcons.leaf_arrow_circlepath, title: s.nitrogenMin, value: '${PlantService.nMin} mg/kg', color: AppColors.green),
-                    const _Separator(),
-                    _row(icon: CupertinoIcons.leaf_arrow_circlepath, title: s.phosphorusMin, value: '${PlantService.pMin} mg/kg', color: AppColors.green),
-                    const _Separator(),
-                    _row(icon: CupertinoIcons.leaf_arrow_circlepath, title: s.potassiumMin, value: '${PlantService.kMin} mg/kg', color: AppColors.green),
-                    const _Separator(),
-                    _row(icon: CupertinoIcons.sun_max, title: s.lightMin, value: '${PlantService.lightMin.toStringAsFixed(0)} lux', color: AppColors.orange),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
               Center(
                 child: Text(s.appVersion, style: const TextStyle(fontSize: 12.5, color: AppColors.secondaryLabel)),
               ),

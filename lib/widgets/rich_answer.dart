@@ -29,6 +29,20 @@ class RichAnswer extends StatelessWidget {
   }
 
   Widget _line(String line) {
+    // `### ခေါင်းစဉ်` လို markdown heading တွေကို `#` အတိုင်း မပြဘဲ စာလုံးထူအဖြစ်ပဲ ပြတယ်။
+    final heading = RegExp(r'^\s*#{1,6}\s+').hasMatch(line);
+    if (heading) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 4, bottom: 2),
+        child: RichText(
+          text: TextSpan(
+            style: const TextStyle(fontSize: 15, height: 1.45, fontWeight: FontWeight.w700, color: AppColors.label),
+            children: _spans(line.replaceFirst(RegExp(r'^\s*#{1,6}\s+'), '')),
+          ),
+        ),
+      );
+    }
+
     final bullet = RegExp(r'^\s*[*-]\s+').hasMatch(line);
     final content = bullet ? line.replaceFirst(RegExp(r'^\s*[*-]\s+'), '') : line;
 
