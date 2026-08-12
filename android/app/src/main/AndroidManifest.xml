@@ -45,5 +45,8 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- Android 11+ မှာ တခြား app ရှိ/မရှိ စစ်ဖို့ ဒီမှာ ကြေညာထားမှ ရတယ်။
+             မကြေညာရင် Blynk app တပ်ဆင်ထားရင်တောင် "မတွေ့ဘူး" ဆိုပြီး Play Store ဆီ ပို့သွားတယ်။ -->
+        <package android:name="cloud.blynk"/>
     </queries>
 </manifest>

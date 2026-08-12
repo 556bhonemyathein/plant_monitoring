@@ -5,9 +5,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_mjpeg/flutter_mjpeg.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../l10n/app_strings.dart';
+import '../services/blynk_service.dart';
 import '../services/gemini_service.dart';
 import '../services/plant_service.dart';
 import '../theme/app_colors.dart';
+import '../widgets/elevated_action_button.dart';
 import '../widgets/rich_answer.dart';
 import 'root_shell.dart';
 
@@ -19,7 +21,11 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  static final Uri _apiLink = Uri.parse('https://sgp1.blynk.cloud/external/api');
+  // Base URL သီးသန့်ဖွင့်ရင် Blynk က "No token provided" ပြန်တာမို့
+  // token ပါတဲ့ endpoint အပြည့်အစုံကို ဖွင့်တယ်။
+  // (static final မဟုတ်ဘဲ getter ထားတာက hot reload မှာပါ တန်ဖိုးအသစ် ရအောင် —
+  //  static final က တစ်ခါပဲ တွက်တာမို့ အဟောင်း ကပ်နေတတ်တယ်။)
+  Uri get _apiLink => BlynkService.instance.statusUrl;
   final PlantService _service = PlantService.instance;
 
   /// build() တိုင်းမှာ အသစ်ယူတယ် — helper method တွေက context မကိုင်ဘဲ သုံးနိုင်အောင်။
@@ -33,6 +39,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _askError;
   bool _asking = false;
   bool _capturing = false;
+  bool _openingBlynk = false;
 
   @override
   void initState() {
@@ -179,6 +186,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       loading: _service.isLoading,
                       color: AppColors.green,
                     ),
+                    const SizedBox(height: 24),
+                    _sectionTitle(CupertinoIcons.slider_horizontal_3, _s.blynkSection, AppColors.teal),
+                    const SizedBox(height: 12),
+                    _blynkButton(),
                     const SizedBox(height: 14),
                     _apiConnectionCard(),
                   ],
@@ -645,6 +656,31 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ],
     );
+  }
+
+  // ── Blynk app ကို ဖွင့်ပေးတဲ့ elevated ခလုတ် ──
+  Widget _blynkButton() {
+    return ElevatedActionButton(
+      icon: CupertinoIcons.bolt_fill,
+      color: AppColors.teal,
+      title: _s.blynkTitle,
+      subtitle: _s.blynkSubtitle,
+      detail: _s.blynkDetail,
+      actionLabel: _s.blynkAction,
+      loading: _openingBlynk,
+      onPressed: _openBlynk,
+    );
+  }
+
+  Future<void> _openBlynk() async {
+    setState(() => _openingBlynk = true);
+    try {
+      await BlynkService.openBlynkApp();
+    } catch (_) {
+      if (mounted) _showError(_s.blynkOpenFailed);
+    } finally {
+      if (mounted) setState(() => _openingBlynk = false);
+    }
   }
 
   // ── Primary Button (Cupertino style) ──

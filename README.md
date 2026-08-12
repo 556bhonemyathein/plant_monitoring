@@ -18,6 +18,11 @@ The UI is fully Cupertino (iOS-style) and bilingual: **English / မြန်မ
 | **AI Scan** | Pick a photo from the gallery or take one with the phone camera, send it with live sensor context, and get a detailed rice health analysis. |
 | **Settings** | Change the ESP32 host/port, test the connection, and switch the app language. |
 
+Home also carries an **elevated "Open Blynk" button** — it launches the installed Blynk app
+(`cloud.blynk`) for pump/fan/light control, falling back to the Play Store when it isn't installed.
+[`BlynkService.writePin`](lib/services/blynk_service.dart) can also drive a virtual pin directly
+through the Blynk Cloud HTTP API.
+
 Other behaviour worth knowing:
 
 - **Threshold-first, AI-second.** Temperature / humidity / soil status is computed locally
