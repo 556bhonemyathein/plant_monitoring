@@ -109,6 +109,12 @@ abstract class AppStrings {
   String get aiAnswerTitle;
 
   String get checkForUpdates;
+  String get apiConnectionTitle;
+  String get apiConnectionSubtitle;
+  String get apiKeyLabel;
+  String get apiTokenLabel;
+  String get apiNotConfigured;
+  String apiOpenFailed(String url);
   String get cameraStreamDisconnected;
   String get previewPaused;
   String get waitingForSensorTitle;
@@ -300,6 +306,18 @@ class _EnStrings extends AppStrings {
   String get aiAnswerTitle => 'AI answer';
   @override
   String get checkForUpdates => 'Check for updates';
+  @override
+  String get apiConnectionTitle => 'API key & token';
+  @override
+  String get apiConnectionSubtitle => 'Tap to open the API link and connect';
+  @override
+  String get apiKeyLabel => 'API key';
+  @override
+  String get apiTokenLabel => 'Token';
+  @override
+  String get apiNotConfigured => 'Not configured';
+  @override
+  String apiOpenFailed(String url) => 'Could not open the link: $url';
   @override
   String get cameraStreamDisconnected => 'Camera Stream Disconnected';
   @override
@@ -533,7 +551,8 @@ class _MyStrings extends AppStrings {
     TempCondition.low => 'အပင်ကြီးထွားမှု နှေးကွေးပြီး အမြစ်မှ အာဟာရ စုပ်ယူမှု လျော့နည်းသည်။ ဆက်လက် စောင့်ကြည့်ပါ။',
     TempCondition.optimal => 'ကြီးထွားမှု၊ သန်မာမှုနှင့် အသီးအောင်မှု အကောင်းဆုံးဖြစ်သည့် အနေအထား။ ပုံမှန်အတိုင်း ထားပါ။',
     TempCondition.warm => 'အပင် ရေသောက်သုံးမှု များပြားလာပြီး ရေငွေ့ပြန်နှုန်း မြင့်တက်လာသည်။ ရေ ပိုမိုလောင်းပါ။',
-    TempCondition.heatStress => 'အပူဒဏ်ကြောင့် ပန်းပွင့်ချိန်တွင် အသီးမအောင်ဘဲ မြုံနိုင်ပြီး ရေဓာတ် ခမ်းခြောက်နိုင်သည်။ အရိပ်ထဲ ရွှေ့ပြီး ရေလောင်းပါ။',
+    TempCondition.heatStress =>
+      'အပူဒဏ်ကြောင့် ပန်းပွင့်ချိန်တွင် အသီးမအောင်ဘဲ မြုံနိုင်ပြီး ရေဓာတ် ခမ်းခြောက်နိုင်သည်။ အရိပ်ထဲ ရွှေ့ပြီး ရေလောင်းပါ။',
   };
 
   @override
@@ -582,6 +601,18 @@ class _MyStrings extends AppStrings {
   String get aiAnswerTitle => 'AI ရဲ့ အဖြေ';
   @override
   String get checkForUpdates => 'အချက်အလက် အသစ်ရယူရန်';
+  @override
+  String get apiConnectionTitle => 'API key နှင့် token';
+  @override
+  String get apiConnectionSubtitle => 'API လင့်ခ်ကို ဖွင့်ရန် နှိပ်ပါ';
+  @override
+  String get apiKeyLabel => 'API key';
+  @override
+  String get apiTokenLabel => 'Token';
+  @override
+  String get apiNotConfigured => 'မတပ်ဆင်ထားသေးပါ';
+  @override
+  String apiOpenFailed(String url) => 'ဤလင့်ခ်ကို ဖွင့်၍ မရပါ: $url';
   @override
   String get cameraStreamDisconnected => 'ကင်မရာ ချိတ်ဆက်မှု ပြတ်တောက်နေသည်';
   @override
