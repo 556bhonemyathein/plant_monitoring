@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_mjpeg/flutter_mjpeg.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../l10n/app_strings.dart';
 import '../services/gemini_service.dart';
 import '../services/plant_service.dart';
@@ -18,6 +19,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  static final Uri _apiLink = Uri.parse('https://sgp1.blynk.cloud/external/api');
   final PlantService _service = PlantService.instance;
 
   /// build() တိုင်းမှာ အသစ်ယူတယ် — helper method တွေက context မကိုင်ဘဲ သုံးနိုင်အောင်။
@@ -177,6 +179,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       loading: _service.isLoading,
                       color: AppColors.green,
                     ),
+                    const SizedBox(height: 14),
+                    _apiConnectionCard(),
                   ],
                 ),
               ),
@@ -370,10 +374,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.label),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  _s.waitingForSensorMessage,
-                  style: const TextStyle(fontSize: 12.5, color: AppColors.secondaryLabel, height: 1.35),
-                ),
+                Text(_s.waitingForSensorMessage, style: const TextStyle(fontSize: 12.5, color: AppColors.secondaryLabel, height: 1.35)),
               ],
             ),
           ),
@@ -524,13 +525,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _askRow({
-    required IconData icon,
-    required Color color,
-    required String title,
-    required String subtitle,
-    required VoidCallback onPressed,
-  }) {
+  Widget _askRow({required IconData icon, required Color color, required String title, required String subtitle, required VoidCallback onPressed}) {
     return CupertinoButton(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       borderRadius: BorderRadius.zero,
@@ -608,10 +603,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 12),
           ],
           if (busy)
-            Text(
-              _capturing ? _s.capturingPhoto : _s.aiThinking,
-              style: const TextStyle(fontSize: 13.5, color: AppColors.secondaryLabel, height: 1.4),
-            )
+            Text(_capturing ? _s.capturingPhoto : _s.aiThinking, style: const TextStyle(fontSize: 13.5, color: AppColors.secondaryLabel, height: 1.4))
           else if (error != null) ...[
             Text(error, style: const TextStyle(fontSize: 13.5, color: AppColors.secondaryLabel, height: 1.4)),
             if (_lastAsk != null) ...[
@@ -656,6 +648,52 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ── Primary Button (Cupertino style) ──
+  Widget _apiConnectionCard() {
+    return _card(
+      children: [
+        CupertinoButton(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          borderRadius: BorderRadius.zero,
+          minimumSize: Size.zero,
+          onPressed: _openApiLink,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(color: AppColors.blue.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(11)),
+                child: const Icon(CupertinoIcons.link, size: 19, color: AppColors.blue),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _s.apiConnectionTitle,
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.label),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(_s.apiConnectionSubtitle, style: const TextStyle(fontSize: 12.5, color: AppColors.secondaryLabel, height: 1.3)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(CupertinoIcons.chevron_right, size: 15, color: AppColors.secondaryLabel),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _openApiLink() async {
+    if (!await launchUrl(_apiLink, mode: LaunchMode.externalApplication)) {
+      _showError(_s.apiOpenFailed(_apiLink.toString()));
+    }
+  }
+
   Widget _primaryButton({
     required VoidCallback? onPressed,
     required IconData icon,
