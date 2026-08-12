@@ -3,13 +3,11 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_mjpeg/flutter_mjpeg.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../l10n/app_strings.dart';
 import '../services/blynk_service.dart';
 import '../services/gemini_service.dart';
 import '../services/plant_service.dart';
 import '../theme/app_colors.dart';
-import '../widgets/elevated_action_button.dart';
 import '../widgets/rich_answer.dart';
 import 'root_shell.dart';
 
@@ -21,11 +19,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Base URL သီးသန့်ဖွင့်ရင် Blynk က "No token provided" ပြန်တာမို့
-  // token ပါတဲ့ endpoint အပြည့်အစုံကို ဖွင့်တယ်။
-  // (static final မဟုတ်ဘဲ getter ထားတာက hot reload မှာပါ တန်ဖိုးအသစ် ရအောင် —
-  //  static final က တစ်ခါပဲ တွက်တာမို့ အဟောင်း ကပ်နေတတ်တယ်။)
-  Uri get _apiLink => BlynkService.instance.statusUrl;
   final PlantService _service = PlantService.instance;
 
   /// build() တိုင်းမှာ အသစ်ယူတယ် — helper method တွေက context မကိုင်ဘဲ သုံးနိုင်အောင်။
@@ -187,11 +180,17 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: AppColors.green,
                     ),
                     const SizedBox(height: 24),
-                    _sectionTitle(CupertinoIcons.slider_horizontal_3, _s.blynkSection, AppColors.teal),
+                    _sectionTitle(CupertinoIcons.gear_alt, _s.blynkSection, AppColors.green),
                     const SizedBox(height: 12),
-                    _blynkButton(),
+                    _careSystemCard(),
                     const SizedBox(height: 14),
-                    _apiConnectionCard(),
+                    _primaryButton(
+                      onPressed: _openingBlynk ? null : _openBlynk,
+                      icon: CupertinoIcons.arrow_up_right_square,
+                      label: _s.systemUse,
+                      loading: _openingBlynk,
+                      color: AppColors.green,
+                    ),
                   ],
                 ),
               ),
@@ -658,75 +657,69 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ── Blynk app ကို ဖွင့်ပေးတဲ့ elevated ခလုတ် ──
-  Widget _blynkButton() {
-    return ElevatedActionButton(
-      icon: CupertinoIcons.bolt_fill,
-      color: AppColors.teal,
-      title: _s.blynkTitle,
-      subtitle: _s.blynkSubtitle,
-      detail: _s.blynkDetail,
-      actionLabel: _s.blynkAction,
-      loading: _openingBlynk,
-      onPressed: _openBlynk,
+  // ── အလိုအလျောက် ပြုစုစောင့်ရှောက်ရေး စနစ် ──
+  // ဒီ row တွေက ဖော်ပြချက်သက်သက် (နှိပ်လို့မရဘူး) — အောက်က "System Use" ခလုတ်ကနေ
+  // Blynk app ကို ဖွင့်ပြီး တကယ့် ခလုတ်တွေကို ထိန်းချုပ်ရတယ်။
+  Widget _careSystemCard() {
+    return _card(
+      children: [
+        _infoRow(icon: CupertinoIcons.drop_fill, color: AppColors.blue, title: _s.autoWateringTitle, subtitle: _s.autoWateringSubtitle),
+        const _Separator(),
+        _infoRow(icon: CupertinoIcons.wind, color: AppColors.orange, title: _s.autoSprayingTitle, subtitle: _s.autoSprayingSubtitle),
+        const _Separator(),
+        _infoRow(
+          icon: CupertinoIcons.tray_arrow_down_fill,
+          color: AppColors.purple,
+          title: _s.autoFeedingTitle,
+          subtitle: _s.autoFeedingSubtitle,
+        ),
+        const _Separator(),
+        _infoRow(icon: CupertinoIcons.waveform_path, color: AppColors.red, title: _s.birdDeterrentTitle, subtitle: _s.birdDeterrentSubtitle),
+      ],
+    );
+  }
+
+  /// [_askRow] နဲ့ ပုံစံတူပေမယ့် နှိပ်လို့မရတဲ့ (chevron မပါတဲ့) အတန်း။
+  Widget _infoRow({required IconData icon, required Color color, required String title, required String subtitle}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(11)),
+            child: Icon(icon, size: 19, color: color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.label),
+                ),
+                const SizedBox(height: 2),
+                Text(subtitle, style: const TextStyle(fontSize: 12.5, color: AppColors.secondaryLabel, height: 1.3)),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Future<void> _openBlynk() async {
     setState(() => _openingBlynk = true);
     try {
-      await BlynkService.openBlynkApp();
-    } catch (_) {
+      // Store ကို ပို့လိုက်တာလည်း အောင်မြင်တာပဲ — failed ဆိုမှ သတိပေးချက် ပြတယ်။
+      final outcome = await BlynkService.openBlynkApp();
+      if (outcome == BlynkLaunchOutcome.failed && mounted) _showError(_s.blynkOpenFailed);
+    } catch (e) {
       if (mounted) _showError(_s.blynkOpenFailed);
     } finally {
       if (mounted) setState(() => _openingBlynk = false);
-    }
-  }
-
-  // ── Primary Button (Cupertino style) ──
-  Widget _apiConnectionCard() {
-    return _card(
-      children: [
-        CupertinoButton(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          borderRadius: BorderRadius.zero,
-          minimumSize: Size.zero,
-          onPressed: _openApiLink,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(color: AppColors.blue.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(11)),
-                child: const Icon(CupertinoIcons.link, size: 19, color: AppColors.blue),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _s.apiConnectionTitle,
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.label),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(_s.apiConnectionSubtitle, style: const TextStyle(fontSize: 12.5, color: AppColors.secondaryLabel, height: 1.3)),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Icon(CupertinoIcons.chevron_right, size: 15, color: AppColors.secondaryLabel),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Future<void> _openApiLink() async {
-    if (!await launchUrl(_apiLink, mode: LaunchMode.externalApplication)) {
-      _showError(_s.apiOpenFailed(_apiLink.toString()));
     }
   }
 

@@ -110,17 +110,19 @@ abstract class AppStrings {
 
   String get checkForUpdates;
   String get blynkSection;
-  String get blynkTitle;
-  String get blynkSubtitle;
-  String get blynkDetail;
-  String get blynkAction;
+  String get autoWateringTitle;
+  String get autoWateringSubtitle;
+  String get autoSprayingTitle;
+  String get autoSprayingSubtitle;
+  String get autoFeedingTitle;
+  String get autoFeedingSubtitle;
+  String get birdDeterrentTitle;
+  String get birdDeterrentSubtitle;
+  String get systemUse;
   String get blynkOpenFailed;
-  String get apiConnectionTitle;
-  String get apiConnectionSubtitle;
   String get apiKeyLabel;
   String get apiTokenLabel;
   String get apiNotConfigured;
-  String apiOpenFailed(String url);
   String get cameraStreamDisconnected;
   String get previewPaused;
   String get waitingForSensorTitle;
@@ -313,29 +315,33 @@ class _EnStrings extends AppStrings {
   @override
   String get checkForUpdates => 'Check for updates';
   @override
-  String get blynkSection => 'Device control';
+  String get blynkSection => 'Automatic Care System';
   @override
-  String get blynkTitle => 'Open Blynk';
+  String get autoWateringTitle => 'Automatic Watering';
   @override
-  String get blynkSubtitle => 'Control the pump, fan and lights';
+  String get autoWateringSubtitle => 'Control pump based on soil moisture sensor';
   @override
-  String get blynkDetail => 'Switches the hardware on your ESP32 board through Blynk Cloud. If the app is not installed, the Play Store opens instead.';
+  String get autoSprayingTitle => 'Automatic Spraying';
   @override
-  String get blynkAction => 'Open app';
+  String get autoSprayingSubtitle => 'Control pesticide/fertilizer sprayer';
+  @override
+  String get autoFeedingTitle => 'Automatic Feeding';
+  @override
+  String get autoFeedingSubtitle => 'Control crop nutrient or fish feeder timed system';
+  @override
+  String get birdDeterrentTitle => 'Bird Deterrent System';
+  @override
+  String get birdDeterrentSubtitle => 'Control buzzer or motion to scare birds away';
+  @override
+  String get systemUse => 'System Use';
   @override
   String get blynkOpenFailed => 'Could not open the Blynk app. Install it from the Play Store and try again.';
-  @override
-  String get apiConnectionTitle => 'API key & token';
-  @override
-  String get apiConnectionSubtitle => 'Tap to open the API link and connect';
   @override
   String get apiKeyLabel => 'API key';
   @override
   String get apiTokenLabel => 'Token';
   @override
   String get apiNotConfigured => 'Not configured';
-  @override
-  String apiOpenFailed(String url) => 'Could not open the link: $url';
   @override
   String get cameraStreamDisconnected => 'Camera Stream Disconnected';
   @override
@@ -620,29 +626,33 @@ class _MyStrings extends AppStrings {
   @override
   String get checkForUpdates => 'အချက်အလက် အသစ်ရယူရန်';
   @override
-  String get blynkSection => 'စက်ပစ္စည်း ထိန်းချုပ်ရန်';
+  String get blynkSection => 'အလိုအလျောက် ပြုစုစောင့်ရှောက်ရေး စနစ်';
   @override
-  String get blynkTitle => 'Blynk ကို ဖွင့်မယ်';
+  String get autoWateringTitle => 'အလိုအလျောက် ရေပေးစနစ်';
   @override
-  String get blynkSubtitle => 'ရေစုပ်စက်၊ ပန်ကာနှင့် မီးများကို ထိန်းချုပ်ရန်';
+  String get autoWateringSubtitle => 'မြေဆီ စိုထိုင်းဆ sensor အလိုက် ရေစုပ်စက်ကို ထိန်းချုပ်ရန်';
   @override
-  String get blynkDetail => 'ESP32 ဘုတ်ပေါ်က ခလုတ်တွေကို Blynk Cloud ကနေ ဖွင့်/ပိတ် လုပ်နိုင်ပါတယ်။ App မတပ်ဆင်ရသေးရင် Play Store ကို ဖွင့်ပေးပါမယ်။';
+  String get autoSprayingTitle => 'အလိုအလျောက် ဆေးဖျန်းစနစ်';
   @override
-  String get blynkAction => 'App ဖွင့်ရန်';
+  String get autoSprayingSubtitle => 'ပိုးသတ်ဆေး/မြေဩဇာ ဖျန်းစက်ကို ထိန်းချုပ်ရန်';
+  @override
+  String get autoFeedingTitle => 'အလိုအလျောက် အစာကျွေးစနစ်';
+  @override
+  String get autoFeedingSubtitle => 'သီးနှံ အာဟာရ သို့မဟုတ် ငါးအစာကျွေး အချိန်စနစ်ကို ထိန်းချုပ်ရန်';
+  @override
+  String get birdDeterrentTitle => 'ငှက်မောင်းစနစ်';
+  @override
+  String get birdDeterrentSubtitle => 'ငှက်များ မောင်းထုတ်ရန် အချက်ပေးစက် သို့မဟုတ် လှုပ်ရှားမှုစနစ်ကို ထိန်းချုပ်ရန်';
+  @override
+  String get systemUse => 'စနစ် အသုံးပြုရန်';
   @override
   String get blynkOpenFailed => 'Blynk app ကို ဖွင့်၍ မရပါ။ Play Store ကနေ တပ်ဆင်ပြီး ထပ်စမ်းကြည့်ပါ။';
-  @override
-  String get apiConnectionTitle => 'API key နှင့် token';
-  @override
-  String get apiConnectionSubtitle => 'API လင့်ခ်ကို ဖွင့်ရန် နှိပ်ပါ';
   @override
   String get apiKeyLabel => 'API key';
   @override
   String get apiTokenLabel => 'Token';
   @override
   String get apiNotConfigured => 'မတပ်ဆင်ထားသေးပါ';
-  @override
-  String apiOpenFailed(String url) => 'ဤလင့်ခ်ကို ဖွင့်၍ မရပါ: $url';
   @override
   String get cameraStreamDisconnected => 'ကင်မရာ ချိတ်ဆက်မှု ပြတ်တောက်နေသည်';
   @override
