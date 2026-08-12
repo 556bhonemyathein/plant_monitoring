@@ -6,6 +6,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import '../l10n/app_strings.dart';
 import '../models/ai_care_advice.dart';
+import '../utils/jpeg_info.dart';
 
 /// AI call တစ်ခု မအောင်မြင်တဲ့အခါ ပစ်တဲ့ error။
 /// [message] က user ကို တိုက်ရိုက်ပြလို့ရအောင် ရေးထားတယ် — raw JSON မဟုတ်ပါ။
@@ -124,6 +125,41 @@ class GeminiService {
       'management (flooding depth, draining, alternate wetting and drying) whenever it is relevant. '
       'If the photo shows a plant that is clearly NOT rice, say that in your first sentence, then answer briefly. '
       'Do not discuss anything outside rice growing and the plant in the photo.\n\n';
+
+  /// ESP32-CAM က ဓာတ်ပုံသေးသေး (128p/QQVGA ကအစ) ပဲ ပေးနိုင်တာမို့ model က
+  /// "ပုံဝေဝါးလို့ မဖြေနိုင်ဘူး" ဆိုပြီး ပစ်ထားတတ်တယ် — ဒါဆို user က ဘာမှ မရဘူး။
+  /// ဒါကြောင့် ပုံအရည်အသွေး ညံ့တာက ပုံမှန်ပဲ ဆိုတာ ကြိုပြောပြီး၊ မဖြေဘဲ မထားရဘဲ
+  /// အကောင်းဆုံး ခန့်မှန်းချက် (ဖြစ်နိုင်ခြေ အစဉ်လိုက် + ယုံကြည်ရမှု အဆင့်) ပေးခိုင်းတယ်။
+  ///
+  /// [size] သိရင် pixel အရွယ်အစားပါ ထည့်ပြောပေးတယ် — model က ဘယ်လောက်
+  /// အသေးစိတ် မျှော်လင့်လို့ရလဲ ချိန်ဆနိုင်အောင်။
+  static String _imageQualityNote(ImageSize? size) {
+    final buffer = StringBuffer(
+      'IMAGE QUALITY: This photo comes from a low-cost ESP32-CAM mounted in the field. '
+      'Low resolution, soft focus, motion blur, poor white balance, over-exposure and heavy JPEG '
+      'artefacts are NORMAL and expected. ',
+    );
+    if (size != null) {
+      buffer.write('The photo is ${size.width}×${size.height} pixels');
+      buffer.write(
+        size.isLowResolution
+            ? ', which is very small — fine detail such as tiny lesion borders, spore masses or small insects '
+                  'is simply not recorded, so judge from colour, tone, leaf posture, canopy density and overall pattern instead. '
+            : '. ',
+      );
+    }
+    buffer.write(
+      'NEVER refuse to answer, never reply with only a complaint about the photo, and never ask the user '
+      'for a clearer or closer picture as your whole answer. Always give your best assessment from what IS visible, '
+      'combined with the sensor readings and normal rice agronomy. '
+      'When the image alone cannot settle it, give the 2-3 most likely explanations in order of likelihood '
+      'and say what would tell them apart in the field. '
+      'State your confidence in ONE short phrase (high / medium / low confidence) — do not spend more than one '
+      'sentence on the limits of the photo. '
+      'Recommend only actions that are safe when the diagnosis is uncertain.\n\n',
+    );
+    return buffer.toString();
+  }
 
   /// Settings မှာ ရွေးထားတဲ့ ဘာသာစကားနဲ့ပဲ AI က ပြန်ဖြေအောင် prompt ထဲ ထည့်ပေးတယ်။
   String get _languageInstruction => 'Write every piece of text you return in ${LocaleController.instance.language.promptName}. ';
@@ -368,7 +404,8 @@ class GeminiService {
         : 'Look at this photo from the paddy field and answer the question below.\n'
               'Question: "$question"\n'
               'Keep the answer under 120 words, concrete and practical for a rice farmer. '
-              'If the photo is too unclear to judge, say so plainly.\n\n';
+              'Answer even when the photo is blurry or low resolution — give the most likely answer '
+              'with a short confidence note rather than no answer.\n\n';
 
     // App က အပင်အတွက်သာ ဖြစ်တာမို့ အပင်မပါတဲ့ ဓာတ်ပုံ (လူ/အခန်း/စာရွက် စသဖြင့်) ဆိုရင်
     // မှန်းဆပြီး မဖြေဘဲ token ပဲ ပြန်ခိုင်းတယ် — UI ကပဲ သတိပေးချက် ပြလိမ့်မယ်။
@@ -379,13 +416,21 @@ class GeminiService {
         'If it does not — for example a person, an animal, a room, a document, a screen, or an empty view — '
         'reply with exactly $_notAPlantToken and nothing else. '
         'That token must stay in English even when you are asked to answer in another language. '
+        // ဝေဝါတဲ့ ပုံကို "အပင်မဟုတ်ဘူး" လို့ မှတ်ပစ်တတ်လို့ ဒီစည်းကို သတ်မှတ်ပေးရတယ်။
+        'A blurry, dark or low-resolution photo is NOT a reason to use that token — if green foliage, '
+        'stems, soil or field water are recognisable at all, treat it as a plant photo and analyse it. '
+        'Use the token only when you can see the subject clearly and it is genuinely not a plant or field.\n'
         'Never answer questions that are unrelated to the crop.\n\n';
+
+    // JPEG ဆိုရင် အရွယ်အစားကို ဖတ်ပြီး prompt ထဲ ထည့်ပေးတယ် (ဖတ်လို့မရရင် ကျော်)။
+    final qualityNote = _imageQualityNote(mimeType == 'image/jpeg' ? jpegSize(imageBytes) : null);
 
     List<Map<String, dynamic>> parts({required bool strict}) => [
       {
         'text':
             '$_riceRole'
             '$scopeGuard'
+            '$qualityNote'
             '$task'
             '$sensorContext\n'
             'Consider the above sensor data in your analysis and recommendations. '

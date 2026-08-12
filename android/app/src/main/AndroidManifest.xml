@@ -48,5 +48,11 @@
         <!-- Android 11+ မှာ တခြား app ရှိ/မရှိ စစ်ဖို့ ဒီမှာ ကြေညာထားမှ ရတယ်။
              မကြေညာရင် Blynk app တပ်ဆင်ထားရင်တောင် "မတွေ့ဘူး" ဆိုပြီး Play Store ဆီ ပို့သွားတယ်။ -->
         <package android:name="cloud.blynk"/>
+        <package android:name="cc.blynk"/>
+        <!-- Play Store / browser fallback ကို url_launcher နဲ့ ဖွင့်ဖို့။ -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
+        </intent>
     </queries>
 </manifest>
