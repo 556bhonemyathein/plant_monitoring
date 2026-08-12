@@ -109,6 +109,12 @@ abstract class AppStrings {
   String get aiAnswerTitle;
 
   String get checkForUpdates;
+  String get blynkSection;
+  String get blynkTitle;
+  String get blynkSubtitle;
+  String get blynkDetail;
+  String get blynkAction;
+  String get blynkOpenFailed;
   String get apiConnectionTitle;
   String get apiConnectionSubtitle;
   String get apiKeyLabel;
@@ -306,6 +312,18 @@ class _EnStrings extends AppStrings {
   String get aiAnswerTitle => 'AI answer';
   @override
   String get checkForUpdates => 'Check for updates';
+  @override
+  String get blynkSection => 'Device control';
+  @override
+  String get blynkTitle => 'Open Blynk';
+  @override
+  String get blynkSubtitle => 'Control the pump, fan and lights';
+  @override
+  String get blynkDetail => 'Switches the hardware on your ESP32 board through Blynk Cloud. If the app is not installed, the Play Store opens instead.';
+  @override
+  String get blynkAction => 'Open app';
+  @override
+  String get blynkOpenFailed => 'Could not open the Blynk app. Install it from the Play Store and try again.';
   @override
   String get apiConnectionTitle => 'API key & token';
   @override
@@ -601,6 +619,18 @@ class _MyStrings extends AppStrings {
   String get aiAnswerTitle => 'AI ရဲ့ အဖြေ';
   @override
   String get checkForUpdates => 'အချက်အလက် အသစ်ရယူရန်';
+  @override
+  String get blynkSection => 'စက်ပစ္စည်း ထိန်းချုပ်ရန်';
+  @override
+  String get blynkTitle => 'Blynk ကို ဖွင့်မယ်';
+  @override
+  String get blynkSubtitle => 'ရေစုပ်စက်၊ ပန်ကာနှင့် မီးများကို ထိန်းချုပ်ရန်';
+  @override
+  String get blynkDetail => 'ESP32 ဘုတ်ပေါ်က ခလုတ်တွေကို Blynk Cloud ကနေ ဖွင့်/ပိတ် လုပ်နိုင်ပါတယ်။ App မတပ်ဆင်ရသေးရင် Play Store ကို ဖွင့်ပေးပါမယ်။';
+  @override
+  String get blynkAction => 'App ဖွင့်ရန်';
+  @override
+  String get blynkOpenFailed => 'Blynk app ကို ဖွင့်၍ မရပါ။ Play Store ကနေ တပ်ဆင်ပြီး ထပ်စမ်းကြည့်ပါ။';
   @override
   String get apiConnectionTitle => 'API key နှင့် token';
   @override

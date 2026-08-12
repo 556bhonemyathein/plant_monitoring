@@ -41,6 +41,7 @@ dependencies:
   flutter_dotenv:
   flutter_native_splash: ^2.4.6
   url_launcher: ^6.1.7
+  external_app_launcher: ^4.0.4
 
 dev_dependencies:
   flutter_test:
