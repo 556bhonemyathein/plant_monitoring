@@ -327,7 +327,7 @@ class _EnStrings extends AppStrings {
   @override
   String get autoFeedingTitle => 'Automatic Feeding';
   @override
-  String get autoFeedingSubtitle => 'Control crop nutrient or fish feeder timed system';
+  String get autoFeedingSubtitle => 'Control crop nutrient timed system';
   @override
   String get birdDeterrentTitle => 'Bird Deterrent System';
   @override
@@ -638,7 +638,7 @@ class _MyStrings extends AppStrings {
   @override
   String get autoFeedingTitle => 'အလိုအလျောက် အစာကျွေးစနစ်';
   @override
-  String get autoFeedingSubtitle => 'သီးနှံ အာဟာရ သို့မဟုတ် ငါးအစာကျွေး အချိန်စနစ်ကို ထိန်းချုပ်ရန်';
+  String get autoFeedingSubtitle => 'သီးနှံ အာဟာရ ပေးဝေမှု အချိန်စနစ်ကို ထိန်းချုပ်ရန်';
   @override
   String get birdDeterrentTitle => 'ငှက်မောင်းစနစ်';
   @override
