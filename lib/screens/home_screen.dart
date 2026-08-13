@@ -8,6 +8,8 @@ import '../services/blynk_service.dart';
 import '../services/gemini_service.dart';
 import '../services/plant_service.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_theme.dart';
+import '../widgets/app_card.dart';
 import '../widgets/rich_answer.dart';
 import 'root_shell.dart';
 
@@ -160,18 +162,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 sliver: SliverList.list(
                   children: [
                     _buildCameraSection(),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSpacing.lg),
                     _buildSensorReadings(),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppSpacing.xl),
                     _sectionTitle(CupertinoIcons.checkmark_seal, _s.conditionSection, AppColors.green),
-                    const SizedBox(height: 12),
                     _conditionCard(),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: AppSpacing.xl),
                     _sectionTitle(CupertinoIcons.camera_viewfinder, _s.askAiCameraSection, AppColors.blue),
-                    const SizedBox(height: 12),
                     _photoQuestionButtons(),
-                    if (_asking || _answer != null || _askError != null) ...[const SizedBox(height: 16), _answerCard()],
-                    const SizedBox(height: 24),
+                    if (_asking || _answer != null || _askError != null) ...[const SizedBox(height: AppSpacing.lg), _answerCard()],
+                    const SizedBox(height: AppSpacing.xl),
                     _primaryButton(
                       onPressed: _service.isLoading ? null : _refresh,
                       icon: CupertinoIcons.arrow_clockwise,
@@ -179,11 +179,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       loading: _service.isLoading,
                       color: AppColors.green,
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppSpacing.xl),
                     _sectionTitle(CupertinoIcons.gear_alt, _s.blynkSection, AppColors.green),
-                    const SizedBox(height: 12),
                     _careSystemCard(),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: AppSpacing.lg),
                     _primaryButton(
                       onPressed: _openingBlynk ? null : _openBlynk,
                       icon: CupertinoIcons.arrow_up_right_square,
@@ -304,9 +303,9 @@ class _HomeScreenState extends State<HomeScreen> {
           unit: '°C',
           color: AppColors.orange,
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: AppSpacing.md),
         _sensorTile(icon: CupertinoIcons.drop, label: _s.humidity, value: _service.humid.toStringAsFixed(0), unit: '%', color: AppColors.blue),
-        const SizedBox(width: 10),
+        const SizedBox(width: AppSpacing.md),
         // Sensor က 0/1 ပဲပေးတာမို့ PlantService မှာ percent အဖြစ် map လုပ်ထားတယ်။
         _sensorTile(
           icon: CupertinoIcons.leaf_arrow_circlepath,
@@ -322,35 +321,23 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _sensorTile({required IconData icon, required String label, required String value, required String unit, required Color color}) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-        decoration: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.separator),
-        ),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg, horizontal: AppSpacing.sm),
+        decoration: BoxDecoration(color: AppColors.card, borderRadius: AppRadius.card, boxShadow: AppShadow.card),
         child: Column(
           children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(11)),
-              child: Center(child: Icon(icon, color: color, size: 20)),
-            ),
-            const SizedBox(height: 10),
+            IconChip(icon: icon, color: color, size: 40),
+            const SizedBox(height: AppSpacing.md),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.baseline,
               textBaseline: TextBaseline.alphabetic,
               children: [
-                Text(
-                  value,
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.label),
-                ),
+                Text(value, style: AppText.metric),
                 if (unit.isNotEmpty) ...[
                   const SizedBox(width: 2),
                   Text(
                     unit,
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.secondaryLabel),
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.secondaryLabel),
                   ),
                 ],
               ],
@@ -361,7 +348,7 @@ class _HomeScreenState extends State<HomeScreen> {
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 11, color: AppColors.secondaryLabel, height: 1.2),
+              style: AppText.caption,
             ),
           ],
         ),
@@ -381,7 +368,7 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Text(
                   _s.waitingForSensorTitle,
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.label),
+                  style: AppText.rowTitle,
                 ),
                 const SizedBox(height: 4),
                 Text(_s.waitingForSensorMessage, style: const TextStyle(fontSize: 12.5, color: AppColors.secondaryLabel, height: 1.35)),
@@ -406,7 +393,7 @@ class _HomeScreenState extends State<HomeScreen> {
           advice: _s.tempConditionAdvice(temp),
           level: temp.level,
         ),
-        const _Separator(),
+        const AppSeparator(),
         _conditionRow(
           icon: CupertinoIcons.drop,
           title: _s.humidity,
@@ -415,7 +402,7 @@ class _HomeScreenState extends State<HomeScreen> {
           advice: _s.humidityConditionAdvice(humidity),
           level: humidity.level,
         ),
-        const _Separator(),
+        const AppSeparator(),
         _conditionRow(
           icon: CupertinoIcons.leaf_arrow_circlepath,
           title: _s.soilMoisture,
@@ -442,12 +429,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(11)),
-            child: Icon(icon, size: 19, color: color),
-          ),
+          IconChip(icon: icon, color: color),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -458,7 +440,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     Expanded(
                       child: Text(
                         title,
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.label),
+                        style: AppText.rowTitle,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -506,7 +488,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 'and the signs you can see in the photo.',
           ),
         ),
-        const _Separator(),
+        const AppSeparator(),
         _askRow(
           icon: CupertinoIcons.drop_triangle,
           color: AppColors.green,
@@ -524,16 +506,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _card({required List<Widget> children}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.separator),
-      ),
-      child: Column(children: children),
-    );
-  }
+  Widget _card({required List<Widget> children}) => AppCard.rows(children: children);
 
   Widget _askRow({required IconData icon, required Color color, required String title, required String subtitle, required VoidCallback onPressed}) {
     return CupertinoButton(
@@ -543,12 +516,7 @@ class _HomeScreenState extends State<HomeScreen> {
       onPressed: _asking ? null : onPressed,
       child: Row(
         children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(11)),
-            child: Icon(icon, size: 19, color: color),
-          ),
+          IconChip(icon: icon, color: color),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -556,10 +524,10 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.label),
+                  style: AppText.rowTitle,
                 ),
                 const SizedBox(height: 2),
-                Text(subtitle, style: const TextStyle(fontSize: 12.5, color: AppColors.secondaryLabel, height: 1.3)),
+                Text(subtitle, style: AppText.rowSubtitle),
               ],
             ),
           ),
@@ -641,21 +609,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ── Section Title ──
-  Widget _sectionTitle(IconData icon, String title, Color color) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: color),
-        const SizedBox(width: 8),
-        Flexible(
-          child: Text(
-            title,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.label),
-          ),
-        ),
-      ],
-    );
-  }
+  Widget _sectionTitle(IconData icon, String title, Color color) => SectionHeader(icon: icon, title: title, color: color);
 
   // ── အလိုအလျောက် ပြုစုစောင့်ရှောက်ရေး စနစ် ──
   // ဒီ row တွေက ဖော်ပြချက်သက်သက် (နှိပ်လို့မရဘူး) — အောက်က "System Use" ခလုတ်ကနေ
@@ -664,16 +618,16 @@ class _HomeScreenState extends State<HomeScreen> {
     return _card(
       children: [
         _infoRow(icon: CupertinoIcons.drop_fill, color: AppColors.blue, title: _s.autoWateringTitle, subtitle: _s.autoWateringSubtitle),
-        const _Separator(),
+        const AppSeparator(),
         _infoRow(icon: CupertinoIcons.wind, color: AppColors.orange, title: _s.autoSprayingTitle, subtitle: _s.autoSprayingSubtitle),
-        const _Separator(),
+        const AppSeparator(),
         _infoRow(
           icon: CupertinoIcons.tray_arrow_down_fill,
           color: AppColors.purple,
           title: _s.autoFeedingTitle,
           subtitle: _s.autoFeedingSubtitle,
         ),
-        const _Separator(),
+        const AppSeparator(),
         _infoRow(icon: CupertinoIcons.waveform_path, color: AppColors.red, title: _s.birdDeterrentTitle, subtitle: _s.birdDeterrentSubtitle),
       ],
     );
@@ -685,12 +639,7 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Row(
         children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(11)),
-            child: Icon(icon, size: 19, color: color),
-          ),
+          IconChip(icon: icon, color: color),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -698,10 +647,10 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.label),
+                  style: AppText.rowTitle,
                 ),
                 const SizedBox(height: 2),
-                Text(subtitle, style: const TextStyle(fontSize: 12.5, color: AppColors.secondaryLabel, height: 1.3)),
+                Text(subtitle, style: AppText.rowSubtitle),
               ],
             ),
           ),
@@ -730,13 +679,18 @@ class _HomeScreenState extends State<HomeScreen> {
     required bool loading,
     required Color color,
   }) {
-    return SizedBox(
+    return Container(
       width: double.infinity,
-      height: 50,
+      height: 52,
+      decoration: BoxDecoration(
+        borderRadius: AppRadius.tile,
+        // ခလုတ် အသက်ဝင်နေချိန်မှာပဲ အလင်းရိပ် ပြတယ် — disabled မှာ ပြရင် လှည့်စားသလို ဖြစ်တယ်။
+        boxShadow: onPressed == null ? null : AppShadow.glow(color),
+      ),
       child: CupertinoButton(
         onPressed: onPressed,
-        disabledColor: color.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(14),
+        disabledColor: color.withValues(alpha: 0.45),
+        borderRadius: AppRadius.tile,
         color: color,
         padding: EdgeInsets.zero,
         child: Row(
@@ -748,22 +702,12 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Text(
                 label,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: CupertinoColors.white),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: CupertinoColors.white, letterSpacing: -0.2),
               ),
             ),
           ],
         ),
       ),
     );
-  }
-}
-
-/// Cupertino မှာ Divider မရှိတာမို့ hairline separator ကို ကိုယ်တိုင်လုပ်ထားတယ်။
-class _Separator extends StatelessWidget {
-  const _Separator();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(height: 1, margin: const EdgeInsets.only(left: 64), color: AppColors.separator);
   }
 }

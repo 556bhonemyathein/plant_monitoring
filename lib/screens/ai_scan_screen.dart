@@ -7,6 +7,7 @@ import '../l10n/app_strings.dart';
 import '../services/gemini_service.dart';
 import '../services/plant_service.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_theme.dart';
 import '../widgets/rich_answer.dart';
 import 'root_shell.dart';
 
@@ -193,8 +194,8 @@ class _AiScanScreenState extends State<AiScanScreen> {
                 child: Container(
                   decoration: BoxDecoration(
                     color: AppColors.card,
-                    border: Border.all(color: AppColors.separator),
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius: AppRadius.card,
+                    boxShadow: AppShadow.card,
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -231,15 +232,15 @@ class _AiScanScreenState extends State<AiScanScreen> {
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: AppColors.card,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.separator),
+          borderRadius: AppRadius.card,
+          boxShadow: AppShadow.card,
         ),
         child: Row(
           children: [
             Container(
               width: 38,
               height: 38,
-              decoration: BoxDecoration(color: AppColors.green.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(11)),
+              decoration: BoxDecoration(color: AppColors.green.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
               child: const Icon(CupertinoIcons.antenna_radiowaves_left_right, size: 19, color: AppColors.green),
             ),
             const SizedBox(width: 12),
@@ -271,8 +272,8 @@ class _AiScanScreenState extends State<AiScanScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.separator),
+        borderRadius: AppRadius.card,
+        boxShadow: AppShadow.card,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -311,7 +312,7 @@ class _AiScanScreenState extends State<AiScanScreen> {
               Container(
                 width: 38,
                 height: 38,
-                decoration: BoxDecoration(color: AppColors.orange.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(11)),
+                decoration: BoxDecoration(color: AppColors.orange.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
                 child: const Icon(CupertinoIcons.exclamationmark_triangle_fill, size: 19, color: AppColors.orange),
               ),
               const SizedBox(width: 12),
@@ -382,8 +383,8 @@ class _AnalyzingCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 28),
       decoration: BoxDecoration(
         color: AppColors.card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.separator),
+        borderRadius: AppRadius.card,
+        boxShadow: AppShadow.card,
       ),
       child: Column(
         children: [

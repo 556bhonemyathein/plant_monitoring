@@ -3,6 +3,8 @@ import 'package:flutter/cupertino.dart';
 import '../l10n/app_strings.dart';
 import '../services/plant_service.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_theme.dart';
+import '../widgets/app_card.dart';
 import 'root_shell.dart';
 
 /// Settings tab — ESP32 ရဲ့ IP/port နဲ့ app ဘာသာစကားကို ဒီကနေ ပြောင်းနိုင်တယ်။
@@ -88,7 +90,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Column(
                   children: [
                     _field(label: s.hostField, controller: _hostController, keyboardType: TextInputType.url, placeholder: '192.168.1.50'),
-                    const _Separator(),
+                    const AppSeparator(indent: 14),
                     _field(label: s.portField, controller: _portController, keyboardType: TextInputType.number, placeholder: '8080'),
                   ],
                 ),
@@ -98,7 +100,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 height: 48,
                 child: CupertinoButton(
                   color: AppColors.green,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: AppRadius.tile,
                   padding: EdgeInsets.zero,
                   onPressed: () => _save(s),
                   child: Text(
@@ -113,9 +115,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Column(
                   children: [
                     _row(icon: CupertinoIcons.link, title: s.dataEndpoint, value: _service.dataUrl, color: AppColors.blue),
-                    const _Separator(),
+                    const AppSeparator(indent: 14),
                     _row(icon: CupertinoIcons.videocam, title: s.streamEndpoint, value: _service.streamUrl, color: AppColors.purple),
-                    const _Separator(),
+                    const AppSeparator(indent: 14),
                     _row(
                       icon: _service.lastError == null && _service.hasData ? CupertinoIcons.checkmark_seal_fill : CupertinoIcons.exclamationmark_circle,
                       title: s.lastSync,
@@ -132,11 +134,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // page background (grey) နဲ့ မရောဘဲ initial state မှာကတည်းက မြင်ရတယ်။
               Container(
                 height: 48,
-                decoration: BoxDecoration(
-                  color: AppColors.card,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppColors.separator),
-                ),
+                decoration: BoxDecoration(color: AppColors.card, borderRadius: AppRadius.tile, boxShadow: AppShadow.card),
                 child: CupertinoButton(
                   borderRadius: BorderRadius.circular(14),
                   padding: EdgeInsets.zero,
@@ -165,7 +163,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       padding: const EdgeInsets.only(left: 4, bottom: 8),
       child: Text(
         text,
-        style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, letterSpacing: 0.6, color: AppColors.secondaryLabel),
+        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.5, color: AppColors.secondaryLabel),
       ),
     );
   }
@@ -177,16 +175,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _card({required Widget child}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.separator),
-      ),
-      child: child,
-    );
-  }
+  Widget _card({required Widget child}) => AppCard.rows(children: [child]);
 
   Widget _field({required String label, required TextEditingController controller, required TextInputType keyboardType, required String placeholder}) {
     return Padding(
@@ -221,12 +210,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Row(
         children: [
-          Container(
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
-            child: Icon(icon, size: 15, color: color),
-          ),
+          IconChip(icon: icon, color: color, size: 30),
           const SizedBox(width: 11),
           Expanded(
             flex: 4,
@@ -263,12 +247,7 @@ class _LanguagePicker extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       child: Row(
         children: [
-          Container(
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(color: AppColors.blue.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
-            child: const Icon(CupertinoIcons.globe, size: 15, color: AppColors.blue),
-          ),
+          const IconChip(icon: CupertinoIcons.globe, color: AppColors.blue, size: 30),
           const SizedBox(width: 11),
           Expanded(
             // အမြင့်ကို ပုံသေမထားပါ — မြန်မာစာလုံးတွေက အင်္ဂလိပ်ထက် မြင့်တာမို့
@@ -305,12 +284,4 @@ class _LanguagePicker extends StatelessWidget {
   }
 }
 
-/// Cupertino app မှာ Material ရဲ့ Divider မသုံးနိုင်တာမို့ hairline separator ကို ကိုယ်တိုင်လုပ်ထားတယ်။
-class _Separator extends StatelessWidget {
-  const _Separator();
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(height: 1, margin: const EdgeInsets.only(left: 14), color: AppColors.separator);
-  }
-}
