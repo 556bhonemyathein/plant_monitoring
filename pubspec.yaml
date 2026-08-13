@@ -57,13 +57,15 @@ dev_dependencies:
 
 # Native splash screen (run: dart run flutter_native_splash:create)
 flutter_native_splash:
-  color: "#1A7A4A"
-  color_dark: "#0F4A2C"
+  # လိုဂိုရဲ့ နောက်ခံက အဖြူဖြစ်တာမို့ splash နောက်ခံကိုပါ အဖြူထားမှ
+  # အဖြူလေးထောင့်ကွက် ပေါ်မနေဘဲ ချောမွေ့တယ်။
+  color: "#FFFFFF"
+  color_dark: "#FFFFFF"
   image: assets/splash/splash_logo.png
   image_dark: assets/splash/splash_logo.png
   android_12:
-    color: "#1A7A4A"
-    color_dark: "#0F4A2C"
+    color: "#FFFFFF"
+    color_dark: "#FFFFFF"
     image: assets/splash/splash_logo_android12.png
     image_dark: assets/splash/splash_logo_android12.png
   android: true
@@ -74,7 +76,7 @@ flutter_native_splash:
 flutter_launcher_icons:
   image_path: "assets/icon/app_icon.png"
   android: "ic_launcher"
-  adaptive_icon_background: "#1A7A4A"
+  adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
   ios: true
   remove_alpha_ios: true
