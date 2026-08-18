@@ -120,6 +120,23 @@ abstract class AppStrings {
   String get birdDeterrentSubtitle;
   String get systemUse;
   String get blynkOpenFailed;
+
+  // ── အရင်းအမြစ်များ (Word စာရွက်စာတမ်းကနေ ထုတ်ထားတဲ့ အချက်အလက်) ──
+  String get resourceSection;
+  String get resourceSearchHint;
+  String get resourcePests;
+  String get resourceFertilisers;
+  String get resourceTreatments;
+  String get resourceSymptomLabel;
+  String get resourceDetailLabel;
+  String get resourceGuidelines;
+  String get resourceGrowthStages;
+  String get resourceSchedule;
+  String get fertUrea;
+  String get fertPhosphate;
+  String get fertPotash;
+  String get resourceNoResults;
+  String get close;
   String get apiKeyLabel;
   String get apiTokenLabel;
   String get apiNotConfigured;
@@ -228,7 +245,7 @@ class _EnStrings extends AppStrings {
   @override
   String get navLive => 'Live';
   @override
-  String get navAiScan => 'AI Scan';
+  String get navAiScan => 'Advisor';
   @override
   String get navSettings => 'Settings';
 
@@ -337,6 +354,37 @@ class _EnStrings extends AppStrings {
   @override
   String get blynkOpenFailed => 'Could not open the Blynk app. Install it from the Play Store and try again.';
   @override
+  String get resourceSection => 'Resources';
+  @override
+  String get resourceSearchHint => 'Search a pesticide or fertiliser';
+  @override
+  String get resourcePests => 'Pests & sprays';
+  @override
+  String get resourceFertilisers => 'Fertilisers';
+  @override
+  String get resourceTreatments => 'Treatments';
+  @override
+  String get resourceSymptomLabel => 'SYMPTOMS';
+  @override
+  String get resourceDetailLabel => 'DETAILS';
+  @override
+  String get resourceGuidelines => 'Fertiliser rules';
+  @override
+  String get resourceGrowthStages => 'Crop stages';
+  @override
+  String get resourceSchedule => 'Fertiliser schedule (per acre)';
+  @override
+  String get fertUrea => 'Urea (N)';
+  @override
+  String get fertPhosphate => 'TSP (P)';
+  @override
+  String get fertPotash => 'Potash (K)';
+  @override
+  String get resourceNoResults => 'Nothing matched that search.';
+  @override
+  String get close => 'Close';
+
+  @override
   String get apiKeyLabel => 'API key';
   @override
   String get apiTokenLabel => 'Token';
@@ -389,7 +437,7 @@ class _EnStrings extends AppStrings {
   String get soilMoistShort => 'Moist';
 
   @override
-  String get aiScanTitle => 'AI Scan';
+  String get aiScanTitle => 'Advisor';
   @override
   String get addPhoto => 'Add photo';
   @override
@@ -538,7 +586,7 @@ class _MyStrings extends AppStrings {
   @override
   String get navLive => 'တိုက်ရိုက်';
   @override
-  String get navAiScan => 'AI စစ်ဆေး';
+  String get navAiScan => 'အကြံပေး';
   @override
   String get navSettings => 'ဆက်တင်';
 
@@ -648,6 +696,37 @@ class _MyStrings extends AppStrings {
   @override
   String get blynkOpenFailed => 'Blynk app ကို ဖွင့်၍ မရပါ။ Play Store ကနေ တပ်ဆင်ပြီး ထပ်စမ်းကြည့်ပါ။';
   @override
+  String get resourceSection => 'အရင်းအမြစ်များ';
+  @override
+  String get resourceSearchHint => 'ဆေး သို့မဟုတ် မြေဩဇာ ရှာရန်';
+  @override
+  String get resourcePests => 'ပိုးမွှားနှင့် ဆေးများ';
+  @override
+  String get resourceFertilisers => 'မြေဩဇာများ';
+  @override
+  String get resourceTreatments => 'ကာကွယ်နှိမ်နင်းရန် ဆေးဝါးများ';
+  @override
+  String get resourceSymptomLabel => 'လက္ခဏာ';
+  @override
+  String get resourceDetailLabel => 'အသေးစိတ်';
+  @override
+  String get resourceGuidelines => 'မြေဩဇာ ကျွေးရာတွင် လိုက်နာရန်';
+  @override
+  String get resourceGrowthStages => 'စပါးပင် အရွယ်အစား';
+  @override
+  String get resourceSchedule => 'မြေဩဇာကျွေးရမည့် အချိန်ဇယား (၁ ဧက)';
+  @override
+  String get fertUrea => 'ပုလဲ (N)';
+  @override
+  String get fertPhosphate => 'တီစူပါ (P)';
+  @override
+  String get fertPotash => 'ပိုတက်ရှ် (K)';
+  @override
+  String get resourceNoResults => 'ရှာဖွေမှုနှင့် ကိုက်ညီသည့် အချက်အလက် မတွေ့ပါ။';
+  @override
+  String get close => 'ပိတ်မည်';
+
+  @override
   String get apiKeyLabel => 'API key';
   @override
   String get apiTokenLabel => 'Token';
@@ -700,7 +779,7 @@ class _MyStrings extends AppStrings {
   String get soilMoistShort => 'စို';
 
   @override
-  String get aiScanTitle => 'AI စစ်ဆေးခြင်း';
+  String get aiScanTitle => 'အကြံပေး';
   @override
   String get addPhoto => 'ဓာတ်ပုံ ထည့်ရန်';
   @override

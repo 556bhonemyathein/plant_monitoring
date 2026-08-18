@@ -41,7 +41,11 @@ class MyApp extends StatelessWidget {
           primaryColor: AppColors.green,
           brightness: Brightness.light,
           scaffoldBackgroundColor: AppColors.background,
-          textTheme: CupertinoTextThemeData(textStyle: TextStyle(fontSize: 17)),
+          // အရောင် မထည့်ရင် Cupertino က default label အရောင်ကို မသုံးတော့ဘဲ
+          // text field တချို့မှာ စာလုံးတွေ အဖြူဖြစ်ပြီး မမြင်ရဘူး။
+          textTheme: CupertinoTextThemeData(
+            textStyle: TextStyle(fontSize: 17, color: AppColors.label),
+          ),
         ),
         home: const RootShell(),
       ),

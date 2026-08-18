@@ -8,6 +8,7 @@ import '../services/gemini_service.dart';
 import '../services/plant_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../widgets/resource_browser.dart';
 import '../widgets/rich_answer.dart';
 import 'root_shell.dart';
 
@@ -177,6 +178,9 @@ class _AiScanScreenState extends State<AiScanScreen> {
               _errorCard(_error!)
             else if (_result != null)
               _resultCard(_result!),
+            const SizedBox(height: AppSpacing.xl),
+            // Word စာရွက်စာတမ်းကနေ ထုတ်ထားတဲ့ ပိုးမွှား/ဆေး/မြေဩဇာ/စပါးမျိုး အချက်အလက်များ။
+            const ResourceBrowser(),
           ],
         ),
       ),

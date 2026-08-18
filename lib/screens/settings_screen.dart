@@ -197,7 +197,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               placeholder: placeholder,
               textAlign: TextAlign.right,
               decoration: null,
-              style: const TextStyle(fontSize: 14.5, color: AppColors.secondaryLabel),
+              // ရိုက်ထည့်တဲ့ တန်ဖိုးက label နဲ့ တူညီတဲ့ အမည်းရောင် — placeholder ကသာ မှိန်တယ်။
+              style: const TextStyle(fontSize: 14.5, color: AppColors.label),
+              placeholderStyle: const TextStyle(fontSize: 14.5, color: AppColors.secondaryLabel),
             ),
           ),
         ],
