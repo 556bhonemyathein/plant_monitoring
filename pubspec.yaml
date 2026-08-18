@@ -104,6 +104,10 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - .env
+    # Word စာရွက်စာတမ်းကနေ ထုတ်ထားတဲ့ အချက်အလက်နဲ့ ဓာတ်ပုံများ
+    # (tool/extract_resources.py နဲ့ ပြန်ထုတ်လို့ရတယ်)။
+    - assets/data/
+    - assets/resources/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
