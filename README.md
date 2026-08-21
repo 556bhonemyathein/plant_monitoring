@@ -41,6 +41,14 @@ Other behaviour worth knowing:
 
 ## Hardware / device contract
 
+The field station — *Intelligent Paddy Care System* — as built and exhibited: an ESP32 driving the
+sensors, relay bank, buzzer and pump, powered from an 18650 pack with a solar panel and buck
+converters, watering a live rice tray.
+
+| | |
+| --- | --- |
+| ![Intelligent Paddy Care System — front view of the prototype](docs/images/hardware-prototype-1.png) | ![Intelligent Paddy Care System — angled view showing the ESP32, relays and power stage](docs/images/hardware-prototype-2.png) |
+
 The app talks to the board over plain HTTP:
 
 | Endpoint | Default | Purpose |
